@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "AuraCSS — In-Browser Visual Design Assistant",
+  "version": "0.1.0",
+  "description": "Ambient in-browser styling co-pilot that extracts design tokens and non-destructively mutates DOM elements in real-time.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "action": {
+    "default_title": "AuraCSS Visual Assistant"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "dist/auracss.bundle.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

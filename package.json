@@ -1,0 +1,34 @@
+{
+  "name": "auracss",
+  "version": "0.1.0",
+  "description": "Zero-dependency, in-browser visual design assistant and non-destructive DOM mutation engine",
+  "type": "module",
+  "main": "dist/auracss.bundle.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build && esbuild src/bridge.ts --bundle --platform=node --format=esm --outfile=dist/bridge.js",
+    "bridge": "node dist/bridge.js",
+    "mcp": "node dist/bridge.js --mcp",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
+  },
+  "keywords": [
+    "css",
+    "design",
+    "devtools",
+    "tailwind",
+    "a11y"
+  ],
+  "author": "AuraCSS Core Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.10.1",
+    "happy-dom": "^21.0.4",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.1",
+    "vitest": "^2.1.8"
+  }
+}
