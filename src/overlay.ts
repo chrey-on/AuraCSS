@@ -1,5 +1,5 @@
 import type { OverlayBoxMetrics } from './types';
-import { getSavedPosition, clampToViewport, makeDraggable } from './draggable';
+import { getSavedPosition, savePosition, clampToViewport, makeDraggable } from './draggable';
 
 const OVERLAY_STYLES = `
 :host { all: initial; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2147483645; }
@@ -242,18 +242,15 @@ export class OverlayManager {
     const exportDivider = document.createElement('div');
     exportDivider.className = 'auracss-controls-divider auracss-export-divider';
     exportDivider.style.display = 'none';
-    row.appendChild(exportDivider);
 
     const exportBtn = document.createElement('button');
     exportBtn.className = 'auracss-toggle-btn auracss-export-btn';
     exportBtn.style.display = 'none';
     exportBtn.textContent = 'Export (0)';
     exportBtn.onclick = (e) => { e.stopPropagation(); onExport(); };
-    row.appendChild(exportBtn);
 
     const minDivider = document.createElement('div');
     minDivider.className = 'auracss-controls-divider';
-    row.appendChild(minDivider);
 
     const minBtn = document.createElement('button');
     minBtn.className = 'auracss-min-btn';
@@ -262,24 +259,32 @@ export class OverlayManager {
     minBtn.innerHTML = '–';
     minBtn.onclick = (e) => {
       e.stopPropagation();
+      const minRect = minBtn.getBoundingClientRect();
+      const stackRect = stack.getBoundingClientRect();
+      const anchorRight = minRect.width > 0 ? minRect.right : stackRect.right;
+      const anchorTop = minRect.height > 0 ? minRect.top + (minRect.height - 32) / 2 : stackRect.top;
       stack.classList.add('minimized');
-      requestAnimationFrame(() => clampToViewport(stack));
+      stack.style.setProperty('left', `${Math.round(anchorRight - 32)}px`, 'important');
+      stack.style.setProperty('top', `${Math.round(anchorTop)}px`, 'important');
+      stack.style.setProperty('right', 'auto', 'important');
+      savePosition(clampToViewport(stack));
     };
-    row.appendChild(minBtn);
+    row.append(exportDivider, exportBtn, minDivider, minBtn);
 
-    const badgeDrag = makeDraggable(stack, badge, {
-      onDragEnd: () => clampToViewport(stack),
-    });
-    const handleDrag = makeDraggable(stack, dragHandle, {
-      onDragEnd: () => clampToViewport(stack),
-    });
+    const badgeDrag = makeDraggable(stack, badge, { onDragEnd: () => clampToViewport(stack) });
+    const handleDrag = makeDraggable(stack, dragHandle, { onDragEnd: () => clampToViewport(stack) });
     this.cleanups.push(badgeDrag.destroy, handleDrag.destroy);
 
     badge.onclick = (e) => {
       e.stopPropagation();
       if (badgeDrag.wasJustDragged()) return;
+      const badgeRect = badge.getBoundingClientRect();
       stack.classList.remove('minimized');
-      requestAnimationFrame(() => clampToViewport(stack));
+      const expandedRect = stack.getBoundingClientRect();
+      stack.style.setProperty('left', `${Math.round(badgeRect.right - expandedRect.width)}px`, 'important');
+      stack.style.setProperty('top', `${Math.round(badgeRect.top + (badgeRect.height - expandedRect.height) / 2)}px`, 'important');
+      stack.style.setProperty('right', 'auto', 'important');
+      savePosition(clampToViewport(stack));
     };
 
     const handleResize = () => clampToViewport(stack);
