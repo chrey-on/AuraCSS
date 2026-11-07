@@ -170,4 +170,62 @@ test.describe('AuraCSS STD-REG-02 Heterogeneous Fixture Verification', () => {
     await revertBtn.click();
     await expect(exportBtn).toHaveText('Export (0)');
   });
+
+  test('Floating Controls Drag & Repositioning: Minimize -> Drag Badge -> Re-expand', async ({ page }) => {
+    const shadowHost = page.locator('#auracss-root');
+    const stack = shadowHost.locator('.auracss-controls-stack');
+    const minBtn = shadowHost.locator('.auracss-min-btn');
+    const badge = shadowHost.locator('.auracss-min-badge');
+    const dragHandle = shadowHost.locator('.auracss-controls-drag-handle');
+
+    // 1. Minimize controls to floating badge
+    await expect(minBtn).toBeVisible();
+    await minBtn.click();
+    await expect(stack).toHaveClass(/minimized/);
+    await expect(badge).toBeVisible();
+
+    // 2. Capture initial position
+    const initialBox = await badge.boundingBox();
+    expect(initialBox).not.toBeNull();
+    if (!initialBox) return;
+
+    // 3. Drag the minimized badge to a new coordinate
+    const targetX = Math.round(initialBox.x - 120);
+    const targetY = Math.round(initialBox.y + 150);
+
+    await badge.hover();
+    await page.mouse.down();
+    await page.mouse.move(targetX, targetY, { steps: 10 });
+    await page.mouse.up();
+
+    // 4. Verify badge moved and did NOT auto-expand on drag end
+    const movedBox = await badge.boundingBox();
+    expect(movedBox).not.toBeNull();
+    if (!movedBox) return;
+
+    expect(Math.abs(movedBox.x - (targetX - initialBox.width / 2))).toBeLessThan(20);
+    expect(Math.abs(movedBox.y - (targetY - initialBox.height / 2))).toBeLessThan(20);
+    await expect(stack).toHaveClass(/minimized/);
+
+    // 5. Normal click on badge expands the toolbar
+    await badge.click();
+    await expect(stack).not.toHaveClass(/minimized/);
+    await expect(shadowHost.locator('.auracss-toggle-btn').first()).toBeVisible();
+
+    // 6. Drag expanded toolbar via drag handle
+    const handleBox = await dragHandle.boundingBox();
+    expect(handleBox).not.toBeNull();
+    if (!handleBox) return;
+
+    const newTargetX = Math.round(handleBox.x - 80);
+    const newTargetY = Math.round(handleBox.y + 80);
+
+    await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(newTargetX, newTargetY, { steps: 8 });
+    await page.mouse.up();
+
+    const finalStackBox = await stack.boundingBox();
+    expect(finalStackBox).not.toBeNull();
+  });
 });
