@@ -5,11 +5,7 @@ import { getSavedPosition, savePosition, clampToViewport, makeDraggable } from '
 function buildSelectorPill(el: HTMLElement): string {
   const tag = el.tagName.toLowerCase();
   const id = el.id ? `#${el.id}` : '';
-  const classes = Array.from(el.classList)
-    .filter((c) => !c.startsWith('auracss'))
-    .slice(0, 2)
-    .map((c) => `.${c}`)
-    .join('');
+  const classes = Array.from(el.classList).filter((c) => !c.startsWith('auracss')).slice(0, 2).map((c) => `.${c}`).join('');
   return `${tag}${id}${classes}`;
 }
 
@@ -27,13 +23,11 @@ export class OverlayManager {
 
   public mount(): ShadowRoot {
     if (this.shadow) return this.shadow;
-    const existingHost = document.getElementById('auracss-root');
-    if (existingHost) existingHost.remove();
+    document.getElementById('auracss-root')?.remove();
 
     const host = document.createElement('div');
     host.id = 'auracss-root';
-    host.style.cssText =
-      'all: initial !important; position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; z-index: 2147483647 !important; pointer-events: none !important;';
+    host.style.cssText = 'all: initial !important; position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; z-index: 2147483647 !important; pointer-events: none !important;';
     const shadow = host.attachShadow({ mode: 'open' });
 
     const styleEl = document.createElement('style');
@@ -62,20 +56,12 @@ export class OverlayManager {
       document.body.appendChild(host);
     } else {
       document.documentElement.appendChild(host);
-      window.addEventListener(
-        'DOMContentLoaded',
-        () => {
-          if (document.body && host.parentElement !== document.body) document.body.appendChild(host);
-        },
-        { once: true }
-      );
+      window.addEventListener('DOMContentLoaded', () => {
+        if (document.body && host.parentElement !== document.body) document.body.appendChild(host);
+      }, { once: true });
     }
 
-    this.host = host;
-    this.shadow = shadow;
-    this.container = container;
-    this.ring = ring;
-    this.pill = pill;
+    this.host = host; this.shadow = shadow; this.container = container; this.ring = ring; this.pill = pill;
     return shadow;
   }
 
@@ -83,18 +69,12 @@ export class OverlayManager {
     this.activeTarget = target;
     this.isLocked = locked;
     if (locked) {
-      if (this.rafId !== null) {
-        cancelAnimationFrame(this.rafId);
-        this.rafId = null;
-      }
+      if (this.rafId !== null) { cancelAnimationFrame(this.rafId); this.rafId = null; }
       this.render();
       return;
     }
     if (this.rafId !== null) cancelAnimationFrame(this.rafId);
-    this.rafId = requestAnimationFrame(() => {
-      this.rafId = null;
-      this.render();
-    });
+    this.rafId = requestAnimationFrame(() => { this.rafId = null; this.render(); });
   }
 
   private render(): void {
@@ -107,10 +87,8 @@ export class OverlayManager {
     const rect = this.activeTarget.getBoundingClientRect();
     const tagLabel = buildSelectorPill(this.activeTarget);
     const metrics: OverlayBoxMetrics = {
-      top: rect.top,
-      left: rect.left,
-      width: Math.max(rect.width, 2),
-      height: Math.max(rect.height, 2),
+      top: rect.top, left: rect.left,
+      width: Math.max(rect.width, 2), height: Math.max(rect.height, 2),
     };
 
     this.ring.style.display = 'block';
@@ -130,50 +108,29 @@ export class OverlayManager {
   }
 
   public destroy(): void {
-    if (this.rafId !== null) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
+    if (this.rafId !== null) { cancelAnimationFrame(this.rafId); this.rafId = null; }
     this.cleanups.forEach((c) => c());
     this.cleanups = [];
-    if (this.host && this.host.parentNode) this.host.parentNode.removeChild(this.host);
-    this.host = null;
-    this.shadow = null;
-    this.container = null;
-    this.ring = null;
-    this.pill = null;
-    this.activeTarget = null;
-    this.isLocked = false;
-    this.liveRegion = null;
+    if (this.host?.parentNode) this.host.parentNode.removeChild(this.host);
+    this.host = null; this.shadow = null; this.container = null; this.ring = null;
+    this.pill = null; this.activeTarget = null; this.isLocked = false; this.liveRegion = null;
   }
 
   public announce(msg: string): void {
     if (!this.liveRegion) return;
     this.liveRegion.textContent = '';
-    setTimeout(() => {
-      if (this.liveRegion) this.liveRegion.textContent = msg;
-    }, 30);
+    setTimeout(() => { if (this.liveRegion) this.liveRegion.textContent = msg; }, 30);
   }
 
-  public getShadowRoot(): ShadowRoot | null {
-    return this.shadow;
-  }
-
-  public getContainer(): HTMLDivElement | null {
-    return this.container;
-  }
+  public getShadowRoot(): ShadowRoot | null { return this.shadow; }
+  public getContainer(): HTMLDivElement | null { return this.container; }
 
   public resolveHostElement(e: Event): HTMLElement | null {
     if (!this.host) return null;
     const path = e.composedPath();
     if (path.includes(this.host)) return null;
     for (const item of path) {
-      if (
-        item instanceof HTMLElement &&
-        item !== document.body &&
-        item !== document.documentElement &&
-        item.isConnected
-      ) {
+      if (item instanceof HTMLElement && item !== document.body && item !== document.documentElement && item.isConnected) {
         return item;
       }
     }
@@ -249,9 +206,7 @@ export class OverlayManager {
     this.cleanups.push(badgeDrag.destroy, rowDrag.destroy);
 
     const minimizeStack = () => {
-      const winW = typeof window !== 'undefined'
-        ? (document.documentElement?.clientWidth || window.innerWidth || 1024)
-        : 1024;
+      const winW = typeof window !== 'undefined' ? (document.documentElement?.clientWidth || window.innerWidth || 1024) : 1024;
       const minRect = minBtn.getBoundingClientRect();
       const stackRect = stack.getBoundingClientRect();
       const anchorRight = minRect.width > 0 ? minRect.right : stackRect.right;
@@ -265,34 +220,16 @@ export class OverlayManager {
       this.announce('AuraCSS controls minimized');
     };
 
-    minBtn.onclick = (e) => {
-      e.stopPropagation();
-      minimizeStack();
-    };
-
+    minBtn.onclick = (e) => { e.stopPropagation(); minimizeStack(); };
     dragHandle.onclick = (e) => {
       e.stopPropagation();
-      if (rowDrag.wasJustDragged()) return;
-      minimizeStack();
+      if (!rowDrag.wasJustDragged()) minimizeStack();
     };
-
     dragHandle.onkeydown = (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        e.stopPropagation();
-        minimizeStack();
-      }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); minimizeStack(); }
     };
-
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      onToggle();
-    };
-
-    exportBtn.onclick = (e) => {
-      e.stopPropagation();
-      onExport();
-    };
+    btn.onclick = (e) => { e.stopPropagation(); onToggle(); };
+    exportBtn.onclick = (e) => { e.stopPropagation(); onExport(); };
 
     badge.onclick = (e) => {
       e.stopPropagation();

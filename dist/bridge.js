@@ -643,9 +643,7 @@ ${args.cssText}${args.activeState ? `
 
 // src/bridge.ts
 try {
-  if (typeof process.loadEnvFile === "function") {
-    process.loadEnvFile();
-  }
+  if (typeof process.loadEnvFile === "function") process.loadEnvFile();
 } catch {
 }
 var activeElement = null;
@@ -682,25 +680,35 @@ var CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
   "Access-Control-Allow-Private-Network": "true"
 };
+var sendJson = (res, code, data) => {
+  res.writeHead(code, { ...CORS_HEADERS, "Content-Type": "application/json" });
+  res.end(JSON.stringify(data));
+};
 function getWorkspaceRoot() {
-  if (process.env.AURACSS_WORKSPACE_ROOT && fs2.existsSync(process.env.AURACSS_WORKSPACE_ROOT)) {
-    return process.env.AURACSS_WORKSPACE_ROOT;
-  }
-  if (fs2.existsSync(path2.resolve(process.cwd(), "package.json"))) {
-    return process.cwd();
-  }
+  const env = process.env.AURACSS_WORKSPACE_ROOT;
+  if (env && fs2.existsSync(env)) return env;
+  if (fs2.existsSync(path2.resolve(process.cwd(), "package.json"))) return process.cwd();
   const scriptDir = typeof __dirname !== "undefined" ? __dirname : path2.dirname(process.argv[1] || "");
   const parentDir = path2.resolve(scriptDir, "..");
-  if (fs2.existsSync(path2.resolve(parentDir, "package.json"))) {
-    return parentDir;
-  }
-  return process.cwd();
+  return fs2.existsSync(path2.resolve(parentDir, "package.json")) ? parentDir : process.cwd();
 }
+function isValidLocalHost(host) {
+  if (!host) return false;
+  const h = host.toLowerCase().split(":")[0];
+  return h === "127.0.0.1" || h === "localhost" || h === "[::1]";
+}
+var MAX_PAYLOAD_BYTES = 1024 * 1024;
 function readBody(req) {
   return new Promise((resolve, reject) => {
-    let body = "";
+    let body = "", bytes = 0;
     req.on("data", (chunk) => {
-      body += chunk;
+      bytes += chunk.length;
+      if (bytes > MAX_PAYLOAD_BYTES) {
+        req.destroy();
+        reject(new Error("Payload Too Large: exceeded 1MB limit"));
+      } else {
+        body += chunk;
+      }
     });
     req.on("end", () => resolve(body));
     req.on("error", reject);
@@ -708,6 +716,10 @@ function readBody(req) {
 }
 function createBridgeServer(port = 4999) {
   const server = http.createServer(async (req, res) => {
+    if (!isValidLocalHost(req.headers.host)) {
+      sendJson(res, 403, { error: "Forbidden: Invalid Host header (DNS rebinding rejected)" });
+      return;
+    }
     const url = new URL(req.url || "/", `http://127.0.0.1:${port}`);
     if (req.method === "OPTIONS") {
       res.writeHead(204, CORS_HEADERS);
@@ -715,21 +727,20 @@ function createBridgeServer(port = 4999) {
       return;
     }
     if (url.pathname === "/health" && req.method === "GET") {
-      res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
-      res.end(JSON.stringify({
+      sendJson(res, 200, {
         status: "ready",
         mcp: true,
         port,
         hasActiveElement: Boolean(activeElement),
         activeElement,
         hasGemini: Boolean(process.env.GEMINI_API_KEY)
-      }));
+      });
       return;
     }
     if (url.pathname === "/api/active-element" && req.method === "POST") {
       try {
         const body = JSON.parse(await readBody(req));
-        if (body && body.tag && !body.clear) {
+        if (body?.tag && !body.clear) {
           activeElement = {
             tag: body.tag,
             selector: body.selector,
@@ -741,16 +752,13 @@ function createBridgeServer(port = 4999) {
             currentMutations: body.currentMutations,
             updatedAt: Date.now()
           };
-          broadcastSSE({ type: "active_element", payload: activeElement });
         } else {
           activeElement = null;
-          broadcastSSE({ type: "active_element", payload: null });
         }
-        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true, activeElement }));
+        broadcastSSE({ type: "active_element", payload: activeElement });
+        sendJson(res, 200, { success: true, activeElement });
       } catch (err) {
-        res.writeHead(400, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
+        sendJson(res, 400, { error: String(err) });
       }
       return;
     }
@@ -770,10 +778,7 @@ function createBridgeServer(port = 4999) {
       try {
         const body = JSON.parse(await readBody(req));
         const geminiKey = process.env.GEMINI_API_KEY;
-        let response = null;
-        if (geminiKey && body.setIndex === void 0) {
-          response = await synthesizeWithGemini(body, geminiKey);
-        }
+        let response = geminiKey && body.setIndex === void 0 ? await synthesizeWithGemini(body, geminiKey) : null;
         if (!response) {
           response = await synthesizeWithLocalOrEnv(
             body.prompt,
@@ -784,31 +789,27 @@ function createBridgeServer(port = 4999) {
             body.setIndex
           );
         }
-        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify(response));
+        sendJson(res, 200, response);
       } catch (err) {
-        res.writeHead(500, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
+        sendJson(res, 500, { error: String(err) });
       }
       return;
     }
     if (url.pathname === "/api/patch" && req.method === "POST") {
       try {
         if (!activeElement) {
-          res.writeHead(400, { ...CORS_HEADERS, "Content-Type": "application/json" });
-          res.end(JSON.stringify({
+          sendJson(res, 400, {
             success: false,
             reminder: "\u26A0\uFE0F Cannot apply styles: AuraCSS is turned OFF or no element is currently selected in your browser. Please toggle AuraCSS to ON and click an element to select it first."
-          }));
+          });
           return;
         }
         const body = JSON.parse(await readBody(req));
-        const mode = body.mode || "replace";
         broadcastSSE({
           type: "apply_style",
           payload: {
             cssText: body.cssText || "",
-            mode,
+            mode: body.mode || "replace",
             activeState: body.activeState,
             hoverState: body.hoverState,
             keyframes: body.keyframes,
@@ -820,11 +821,9 @@ function createBridgeServer(port = 4999) {
             selector: body.selector
           }
         });
-        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true, broadcastCount: sseClients.size }));
+        sendJson(res, 200, { success: true, broadcastCount: sseClients.size });
       } catch (err) {
-        res.writeHead(400, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
+        sendJson(res, 400, { error: String(err) });
       }
       return;
     }
@@ -832,10 +831,7 @@ function createBridgeServer(port = 4999) {
       try {
         const root = getWorkspaceRoot();
         const safePath = path2.resolve(root, "auracss-mutations.css");
-        let cssText = url.searchParams.get("css");
-        if (!cssText) {
-          cssText = fs2.existsSync(safePath) ? fs2.readFileSync(safePath, "utf8") : "/* AuraCSS */\n";
-        }
+        const cssText = url.searchParams.get("css") || (fs2.existsSync(safePath) ? fs2.readFileSync(safePath, "utf8") : "/* AuraCSS */\n");
         res.writeHead(200, {
           ...CORS_HEADERS,
           "Content-Type": "text/css; charset=utf-8",
@@ -843,8 +839,7 @@ function createBridgeServer(port = 4999) {
         });
         res.end(cssText);
       } catch (err) {
-        res.writeHead(500, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
+        sendJson(res, 500, { error: String(err) });
       }
       return;
     }
@@ -852,15 +847,10 @@ function createBridgeServer(port = 4999) {
       try {
         const root = getWorkspaceRoot();
         const safePath = path2.resolve(root, "auracss-mutations.css");
-        let cssText = "";
-        if (fs2.existsSync(safePath)) {
-          cssText = fs2.readFileSync(safePath, "utf8");
-        }
-        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true, cssText, filePath: safePath }));
+        const cssText = fs2.existsSync(safePath) ? fs2.readFileSync(safePath, "utf8") : "";
+        sendJson(res, 200, { success: true, cssText, filePath: safePath });
       } catch (err) {
-        res.writeHead(500, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
+        sendJson(res, 500, { error: String(err) });
       }
       return;
     }
@@ -868,18 +858,25 @@ function createBridgeServer(port = 4999) {
       try {
         const body = JSON.parse(await readBody(req));
         const root = getWorkspaceRoot();
-        const safePath = path2.resolve(root, body.filePath);
-        if (!safePath.startsWith(root)) throw new Error("Path traversal forbidden");
+        const safePath = path2.resolve(root, body.filePath || "auracss-mutations.css");
+        const rel = path2.relative(root, safePath);
+        if (rel.startsWith("..") || path2.isAbsolute(rel)) {
+          throw new Error("Path traversal forbidden: target must reside within workspace");
+        }
+        if (!safePath.toLowerCase().endsWith(".css")) {
+          throw new Error("Security policy violation: only .css files may be committed to source");
+        }
+        if (/(^|[/\\])\./.test(rel) || rel.includes("node_modules")) {
+          throw new Error("Security policy violation: hidden or system directory modification forbidden");
+        }
         fs2.mkdirSync(path2.dirname(safePath), { recursive: true });
         const header = `/* === AuraCSS Mutated Styles (${(/* @__PURE__ */ new Date()).toISOString()}) === */
 `;
         fs2.writeFileSync(safePath, `${header}${body.cssText}
 `);
-        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true, filePath: safePath }));
+        sendJson(res, 200, { success: true, filePath: safePath });
       } catch (err) {
-        res.writeHead(400, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
+        sendJson(res, 400, { error: String(err) });
       }
       return;
     }
@@ -900,7 +897,7 @@ if (isMain) {
 `);
     }
   });
-  server.listen(port, "0.0.0.0", () => {
+  server.listen(port, "127.0.0.1", () => {
     if (!isMcp) {
       console.log(`
 \u2726 AuraCSS Local Bridge running on http://127.0.0.1:${port}`);

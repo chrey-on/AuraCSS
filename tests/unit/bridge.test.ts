@@ -162,4 +162,51 @@ describe('AuraCSS Bridge & MCP Server', () => {
     });
     expect(res2.status).toBe(200);
   });
+
+  it('rejects external or DNS-rebound Host headers with 403 Forbidden', async () => {
+    const statusAndBody = await new Promise<{ statusCode: number; body: string }>((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: '127.0.0.1',
+          port: testPort,
+          path: '/health',
+          method: 'GET',
+          headers: { Host: 'evil-attacker.com' },
+        },
+        (res) => {
+          let data = '';
+          res.on('data', (chunk) => { data += chunk; });
+          res.on('end', () => resolve({ statusCode: res.statusCode || 0, body: data }));
+        }
+      );
+      req.on('error', reject);
+      req.end();
+    });
+
+    expect(statusAndBody.statusCode).toBe(403);
+    const json = JSON.parse(statusAndBody.body) as { error: string };
+    expect(json.error).toContain('DNS rebinding rejected');
+  });
+
+  it('rejects commit-to-source targeting non-css files or path traversal', async () => {
+    // Non-css file attempt
+    const res1 = await fetch(`http://127.0.0.1:${testPort}/api/commit-to-source`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePath: 'package.json', cssText: 'malicious' }),
+    });
+    expect(res1.status).toBe(400);
+    const json1 = (await res1.json()) as { error: string };
+    expect(json1.error).toContain('only .css files');
+
+    // Path traversal attempt
+    const res2 = await fetch(`http://127.0.0.1:${testPort}/api/commit-to-source`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePath: '../../evil.css', cssText: 'malicious' }),
+    });
+    expect(res2.status).toBe(400);
+    const json2 = (await res2.json()) as { error: string };
+    expect(json2.error).toContain('Path traversal forbidden');
+  });
 });

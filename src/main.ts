@@ -5,16 +5,11 @@ declare global {
 }
 
 export class AuraCSSApp {
-  private overlay = new OverlayManager();
-  private hierarchy = new HierarchyManager();
-  private harvester = new AuraHarvester();
-  private suggester = new AuraSuggester();
-  private variationDock = new VariationDock();
-  private customizer = new FineTuneCustomizer();
-  private commandHistory = new CommandHistory();
-  private ledgerModal = new ChangeLedgerModal();
-  private aiService = new AIService();
-  private aiModal = new AISettingsModal(this.aiService);
+  private overlay = new OverlayManager(); private hierarchy = new HierarchyManager();
+  private harvester = new AuraHarvester(); private suggester = new AuraSuggester();
+  private variationDock = new VariationDock(); private customizer = new FineTuneCustomizer();
+  private commandHistory = new CommandHistory(); private ledgerModal = new ChangeLedgerModal();
+  private aiService = new AIService(); private aiModal = new AISettingsModal(this.aiService);
   private helpModal = new HelpModal();
   private stylePatches = new WeakMap<HTMLElement, StylePatch>();
   private aiVariationCycleMap = new WeakMap<HTMLElement, number>();
@@ -38,20 +33,14 @@ export class AuraCSSApp {
       const shadow = this.overlay.mount();
       [this.hierarchy, this.variationDock, this.customizer, this.ledgerModal, this.aiModal, this.helpModal].forEach((c) => c.mount(shadow));
       const ctrl = this.overlay.mountControls(() => this.toggle(), () => this.ledgerModal.show(this.commandHistory.getHistory()));
-      this.toggleBtn = ctrl.toggleBtn;
-      this.toggleLabel = ctrl.toggleLabel;
-      this.ledgerBtn = ctrl.exportBtn;
-      this.exportDivider = ctrl.exportDivider;
-      this.minBadge = ctrl.minBadge;
-      this.controlsStack = ctrl.controlsStack;
+      this.toggleBtn = ctrl.toggleBtn; this.toggleLabel = ctrl.toggleLabel; this.ledgerBtn = ctrl.exportBtn;
+      this.exportDivider = ctrl.exportDivider; this.minBadge = ctrl.minBadge; this.controlsStack = ctrl.controlsStack;
 
       this.aiService.subscribeBridge((p) => {
         if (!this.isActive || (!this.lockedElement && !p.selector)) return;
         applyBridgePayloadHelper(p, {
-          lockedElement: this.lockedElement,
-          lockElement: (el) => this.lockElement(el),
-          savedPromptedStyles: this.savedPromptedStyles,
-          presetContext: this.getPresetContext(),
+          lockedElement: this.lockedElement, lockElement: (el) => this.lockElement(el),
+          savedPromptedStyles: this.savedPromptedStyles, presetContext: this.getPresetContext(),
         });
       });
       this.aiService.notifyActiveElement(null);
@@ -100,19 +89,14 @@ export class AuraCSSApp {
     this.isTransitioning = true;
     try {
       this.isActive = true;
-      if (this.toggleBtn && this.toggleLabel) {
-        this.toggleBtn.classList.add('active');
-        this.toggleLabel.textContent = 'AuraCSS: ON';
-      }
+      if (this.toggleBtn && this.toggleLabel) { this.toggleBtn.classList.add('active'); this.toggleLabel.textContent = 'AuraCSS: ON'; }
       this.minBadge?.classList.add('active');
       if (this.ledgerBtn) this.ledgerBtn.style.display = 'inline-flex';
       if (this.exportDivider) this.exportDivider.style.display = 'block';
       if (typeof window !== 'undefined' && typeof window.focus === 'function') { try { window.focus(); } catch {} }
       if (this.controlsStack) {
         clampToViewport(this.controlsStack);
-        if (typeof requestAnimationFrame !== 'undefined') {
-          requestAnimationFrame(() => { if (this.controlsStack) clampToViewport(this.controlsStack); });
-        }
+        if (typeof requestAnimationFrame !== 'undefined') requestAnimationFrame(() => { if (this.controlsStack) clampToViewport(this.controlsStack); });
       }
 
       this.abortController = new AbortController();
@@ -160,10 +144,7 @@ export class AuraCSSApp {
       [this.customizer, this.ledgerModal, this.aiModal, this.helpModal].forEach(c => c.hide());
       this.helpModal.hideToast();
 
-      if (this.toggleBtn && this.toggleLabel) {
-        this.toggleBtn.classList.remove('active');
-        this.toggleLabel.textContent = 'AuraCSS: OFF';
-      }
+      if (this.toggleBtn && this.toggleLabel) { this.toggleBtn.classList.remove('active'); this.toggleLabel.textContent = 'AuraCSS: OFF'; }
       if (this.minBadge) this.minBadge.classList.remove('active');
       if (this.ledgerBtn) this.ledgerBtn.style.display = 'none';
       if (this.exportDivider) this.exportDivider.style.display = 'none';
@@ -181,18 +162,12 @@ export class AuraCSSApp {
   private handleScrollOrResize = (): void => { try { if (this.lockedElement?.isConnected) this.overlay.updateHighlight(this.lockedElement, true); if (this.controlsStack) clampToViewport(this.controlsStack); } catch (err) { this.error('handleScrollOrResize', err); } };
 
   private keybindings = createKeybindingHandlers({
-    getLockedElement: () => this.lockedElement,
-    getIsComparing: () => this.isComparing,
-    setIsComparing: (val) => { this.isComparing = val; },
-    unlockElement: () => this.unlockElement(),
-    deactivate: () => this.deactivate(),
-    commandHistory: this.commandHistory,
-    updateLedgerCount: () => this.updateLedgerCount(),
-    overlay: this.overlay,
-    stylePatches: this.stylePatches,
-    revertElement: (el) => this.revertElement(el),
-    hierarchy: this.hierarchy,
-    lockElement: (el) => this.lockElement(el),
+    getLockedElement: () => this.lockedElement, getIsComparing: () => this.isComparing,
+    setIsComparing: (val) => { this.isComparing = val; }, unlockElement: () => this.unlockElement(),
+    deactivate: () => this.deactivate(), commandHistory: this.commandHistory,
+    updateLedgerCount: () => this.updateLedgerCount(), overlay: this.overlay,
+    stylePatches: this.stylePatches, revertElement: (el) => this.revertElement(el),
+    hierarchy: this.hierarchy, lockElement: (el) => this.lockElement(el),
     showHelp: () => this.helpModal.show(),
   });
   private globalKeyCleanup: (() => void) | null = null;
@@ -248,17 +223,17 @@ export class AuraCSSApp {
 
   private renderDock(el: HTMLElement, presets: StylePreset[], isModified: boolean, setIndex?: number): void {
     renderDockHelper({
-        variationDock: this.variationDock, harvester: this.harvester, savedPromptedStyles: this.savedPromptedStyles,
-        activePresetIdMap: this.activePresetIdMap, currentDockPresets: this.currentDockPresets, bookmarkedPresets: this.bookmarkedPresets,
-        onApplyPreset: (elem, p) => this.applyPreset(elem, p), onRevert: (elem) => this.revertElement(elem),
-        onApplyTypography: (elem, u) => applyTypographyUpdateHelper(elem, u, this.stylePatches.get(elem)?.tailwindClasses || '', (n, t, p) => this.commitStyleChange(elem, n, t, p)),
-        onRevertTypography: (elem) => revertTypographyHelper(elem, (n, t, p) => this.commitStyleChange(elem, n, t, p), () => this.revertElement(elem)),
-        onApplySwatch: (elem, hex) => applyColorSwatchHelper(elem, hex, this.stylePatches.get(elem)?.tailwindClasses || '', (n, t, p) => this.commitStyleChange(elem, n, t, p)),
-        onOpenAISettings: (elem) => this.aiModal.show({ tag: elem.tagName.toLowerCase(), selector: formatElementLabel(elem) }),
-        onRequestAISuggestions: (elem) => this.handleAISuggestions(elem), refreshDock: (elem, mod) => this.refreshDock(elem, mod),
-        onPeek: (elem, p) => peekPresetHelper(this.getPresetContext(), elem, p, this.isComparing),
-        onUnpeek: (elem) => unpeekPresetHelper(this.getPresetContext(), elem, this.isComparing),
-      }, el, presets, isModified, setIndex);
+      variationDock: this.variationDock, harvester: this.harvester, savedPromptedStyles: this.savedPromptedStyles,
+      activePresetIdMap: this.activePresetIdMap, currentDockPresets: this.currentDockPresets, bookmarkedPresets: this.bookmarkedPresets,
+      onApplyPreset: (elem, p) => this.applyPreset(elem, p), onRevert: (elem) => this.revertElement(elem),
+      onApplyTypography: (elem, u) => applyTypographyUpdateHelper(elem, u, this.stylePatches.get(elem)?.tailwindClasses || '', (n, t, p) => this.commitStyleChange(elem, n, t, p)),
+      onRevertTypography: (elem) => revertTypographyHelper(elem, (n, t, p) => this.commitStyleChange(elem, n, t, p), () => this.revertElement(elem)),
+      onApplySwatch: (elem, hex) => applyColorSwatchHelper(elem, hex, this.stylePatches.get(elem)?.tailwindClasses || '', (n, t, p) => this.commitStyleChange(elem, n, t, p)),
+      onOpenAISettings: (elem) => this.aiModal.show({ tag: elem.tagName.toLowerCase(), selector: formatElementLabel(elem) }),
+      onRequestAISuggestions: (elem) => this.handleAISuggestions(elem), refreshDock: (elem, mod) => this.refreshDock(elem, mod),
+      onPeek: (elem, p) => peekPresetHelper(this.getPresetContext(), elem, p, this.isComparing),
+      onUnpeek: (elem) => unpeekPresetHelper(this.getPresetContext(), elem, this.isComparing),
+    }, el, presets, isModified, setIndex);
   }
 
   public applyPreset(el: HTMLElement, preset: StylePreset): void {
@@ -272,13 +247,9 @@ export class AuraCSSApp {
 
   private async handleAISuggestions(el: HTMLElement): Promise<void> {
     await handleAISuggestionsHelper(el, {
-      aiService: this.aiService,
-      aiModal: this.aiModal,
-      variationCycleMap: this.aiVariationCycleMap,
-      harvester: this.harvester,
-      isModified: this.stylePatches.has(el),
-      renderDock: (e, p, m, s) => this.renderDock(e, p, m, s),
-      refreshDock: (e, m) => this.refreshDock(e, m),
+      aiService: this.aiService, aiModal: this.aiModal, variationCycleMap: this.aiVariationCycleMap,
+      harvester: this.harvester, isModified: this.stylePatches.has(el),
+      renderDock: (e, p, m, s) => this.renderDock(e, p, m, s), refreshDock: (e, m) => this.refreshDock(e, m),
     });
   }
 
