@@ -71,7 +71,25 @@ The build produces:
 1. Open `chrome://extensions/` in your browser.
 2. Enable **Developer mode** (toggle in top-right corner).
 3. Click **Load unpacked** and select the root directory of this repository (`d:\AuraCSS`).
-4. AuraCSS is now available on every webpage you visit!
+4. AuraCSS is now active!
+   - Click the extension icon in the toolbar or press <kbd>Alt+A</kbd> to toggle.
+   - Customize your hotkey anytime in `chrome://extensions/shortcuts`.
+
+### 4. Zero-Install Bookmarklet & CDN Injector (No Node.js Required)
+For designers, product managers, or clients who want to test AuraCSS on any live website without cloning or installing dependencies:
+
+**Option A: Browser Bookmarklet**  
+Create a new browser bookmark and set the URL to:
+```javascript
+javascript:(function(){if(window.__AURACSS_INSTANCE__){window.__AURACSS_INSTANCE__.toggle();return;}const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/chrey-on/AuraCSS@main/dist/auracss.bundle.js';document.head.appendChild(s);})();
+```
+Clicking the bookmark on any webpage instantly activates AuraCSS!
+
+**Option B: HTML Script Tag**  
+Add this script tag right before your closing `</body>` tag:
+```html
+<script src="https://cdn.jsdelivr.net/gh/chrey-on/AuraCSS@main/dist/auracss.bundle.js"></script>
+```
 
 ---
 
@@ -113,15 +131,17 @@ The browser UI will automatically detect `http://127.0.0.1:4999` and display `�
 
 | Shortcut | Action |
 | :--- | :--- |
-| <kbd>Alt+A</kbd> | Toggle AuraCSS ON / OFF |
+| <kbd>Alt+A</kbd> | Toggle AuraCSS ON / OFF (or click extension icon) |
+| <kbd>?</kbd> / <kbd>Shift+/</kbd> / <kbd>F1</kbd> | Open Shortcut Cheat Sheet dialog |
 | <kbd>Click</kbd> | Lock / Unlock hovered DOM element |
+| <kbd>Ctrl+Click</kbd> | Deselect locked DOM element |
 | <kbd>ArrowUp</kbd> | Traverse to parent DOM node |
 | <kbd>ArrowDown</kbd> | Traverse to child DOM node |
 | <kbd>Hold Spacebar</kbd> | Hold to compare with original styles (release to restore) |
 | <kbd>Ctrl+Z</kbd> | Undo last style mutation |
 | <kbd>Ctrl+Y</kbd> / <kbd>Ctrl+Shift+Z</kbd> | Redo undone mutation |
 | <kbd>Alt+R</kbd> | Revert locked element to original state |
-| <kbd>Esc</kbd> | Close active modal / drawer |
+| <kbd>Esc</kbd> | Close active modal / dialog / drawer |
 
 ---
 
@@ -131,35 +151,33 @@ Every file in `src/` strictly follows the Single Responsibility Principle and ad
 
 ```
 src/
-├── a11y.ts             # WCAG 2.2 APCA / Relative luminance contrast calculator (51 lines)
-├── ai-modal.ts         # Settings modal for Bridge, Gemini, and OpenAI (188 lines)
-├── ai.ts               # Multi-provider LLM service, gateway checks, auto-fallback (190 lines)
-├── bridge-compiler.ts  # Deterministic local keyword intent compiler (205 lines)
-├── bridge-gemini.ts    # Direct Gemini Flash LLM synthesis client (81 lines)
-├── bridge-mcp.ts       # Model Context Protocol (MCP) JSON-RPC 2.0 stdio server (157 lines)
-├── bridge-presets.ts   # Curated multi-concept design variation catalogues (152 lines)
-├── bridge-types.ts     # Shared Bridge and MCP interface definitions (38 lines)
-├── bridge.ts           # Dual-mode HTTP Bridge daemon & route dispatcher (221 lines)
-├── command.ts          # GoF Command Pattern history with atomic undo/redo (71 lines)
-├── customizer.ts       # Micro-tuning drawer (sliders, radius, elevation) (160 lines)
-├── dock-cards.ts       # Swipeable preset cards track & drag physics (102 lines)
-├── dock-saved.ts       # Saved prompted styles popover & time-ago formatters (123 lines)
-├── dock-styles.ts      # CSS declarations for floating dock, prompt bar & popovers (263 lines)
-├── dock-typography.ts  # Typography catalogues, font scales & palette popover (193 lines)
-├── dock.ts             # Floating glassmorphism variation dock & ambient prompt bar (259 lines)
-├── draggable.ts        # Pointer drag controller & viewport clamping (174 lines)
-├── harvester.ts        # Ambient DOM design token harvester (199 lines)
-├── hierarchy.ts        # Breadcrumb DOM hierarchy navigator (201 lines)
-├── ledger-formatters.ts# CSS diff, Tailwind mapping & JSX component formatters (69 lines)
-├── ledger-styles.ts    # Shadow DOM modal styles for change ledger (61 lines)
-├── ledger.ts           # Change ledger modal, clipboard & 1-click source committer (269 lines)
-├── main.ts             # Master orchestrator & lifecycle manager (427 lines)
-├── overlay.ts          # FastDOM highlight boxes & floating HUD capsule (298 lines)
-├── prompt-analyzer.ts  # Natural language intent & dimensional prompt parser (187 lines)
-├── prompt.ts           # Design prompt synthesizers & AI bridge orchestrator (156 lines)
-├── style-mutator.ts    # Color swatch & typography Tailwind mutator functions (46 lines)
-├── suggester.ts        # Deterministic local design preset generator (200 lines)
-└── types.ts            # Core TypeScript interfaces & contracts (75 lines)
+├── a11y.ts             # WCAG 2.2 APCA / Relative luminance contrast calculator
+├── ai-modal.ts         # Settings modal for Bridge, Gemini, and OpenAI
+├── ai.ts               # Multi-provider LLM service, gateway checks, auto-fallback
+├── bridge-compiler.ts  # Deterministic local keyword intent compiler
+├── bridge-gemini.ts    # Direct Gemini Flash LLM synthesis client
+├── bridge-mcp.ts       # Model Context Protocol (MCP) JSON-RPC 2.0 stdio server
+├── bridge-presets.ts   # Curated multi-concept design variation catalogues
+├── bridge-types.ts     # Shared Bridge and MCP interface definitions
+├── bridge.ts           # Dual-mode HTTP Bridge daemon & route dispatcher
+├── command.ts          # GoF Command Pattern history with atomic undo/redo
+├── customizer.ts       # Micro-tuning drawer (sliders, radius, elevation)
+├── dock-cards.ts       # Swipeable preset cards track & drag physics
+├── dock-saved.ts       # Saved prompted styles popover & time-ago formatters
+├── dock-styles.ts      # CSS declarations for floating dock, prompt bar & popovers
+├── dock-typography.ts  # Typography catalogues, font scales & palette popover
+├── dock.ts             # Floating glassmorphism variation dock & ambient prompt bar
+├── draggable.ts        # Pointer drag controller & viewport clamping
+├── harvester.ts        # Ambient DOM design token harvester
+├── help-modal.ts       # Shortcuts cheat sheet dialog & activation toast HUD
+├── hierarchy.ts        # Breadcrumb DOM hierarchy navigator
+├── ledger.ts           # Change ledger modal, focus trap & 1-click source committer
+├── main.ts             # Master orchestrator & lifecycle manager (< 300 lines)
+├── overlay-styles.ts   # Shadow DOM overlay, controls & responsive touch styles
+├── overlay.ts          # FastDOM highlight boxes, aria-live region & HUD capsule
+├── prompt.ts           # Design prompt synthesizers & AI bridge orchestrator
+├── suggester.ts        # Deterministic local design preset generator
+└── types.ts            # Core TypeScript interfaces & contracts
 ```
 
 ---
@@ -169,15 +187,15 @@ src/
 AuraCSS is validated with comprehensive unit and end-to-end test suites:
 
 ```bash
-# Run unit tests across all 12 test suites (65 tests)
+# Run unit tests across all 17 test suites (102 tests)
 npm test
 
-# Run Playwright end-to-end tests across 4 heterogeneous DOM topologies
+# Run Playwright end-to-end tests across 4 heterogeneous DOM topologies (12 tests)
 npm run test:e2e
 ```
 
-- **Unit Suite:** 65 / 65 Vitest tests passing (`tests/unit/`).
-- **E2E Suite:** 6 / 6 Playwright tests passing (`tests/e2e/`).
+- **Unit Suite:** 102 / 102 Vitest tests passing (`tests/unit/`).
+- **E2E Suite:** 12 / 12 Playwright tests passing (`tests/e2e/`).
 
 ---
 

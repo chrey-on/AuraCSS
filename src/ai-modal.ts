@@ -53,6 +53,8 @@ export class AISettingsModal {
   private badgeEl: HTMLSpanElement | null = null;
   private targetValEl: HTMLSpanElement | null = null;
   private aiService: AIService;
+  private prevFocusedEl: HTMLElement | null = null;
+  private trapCleanup: (() => void) | null = null;
 
   constructor(aiService: AIService) {
     this.aiService = aiService;
@@ -73,6 +75,9 @@ export class AISettingsModal {
 
     const modal = document.createElement('div');
     modal.className = 'auracss-ai-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Antigravity Agent Diagnostics');
 
     // Header
     const header = document.createElement('div');
@@ -82,6 +87,7 @@ export class AISettingsModal {
     title.innerHTML = '⚡ Antigravity Agent Diagnostics';
     const closeBtn = document.createElement('button');
     closeBtn.className = 'auracss-ai-modal-close';
+    closeBtn.setAttribute('aria-label', 'Close Diagnostics Modal');
     closeBtn.type = 'button';
     closeBtn.innerHTML = '✕';
     closeBtn.onclick = () => this.hide();
@@ -181,7 +187,41 @@ export class AISettingsModal {
       this.targetValEl.textContent = info?.selector || (info?.tag ? `<${info.tag}>` : 'None (Standby)');
     }
     void this.pingStatus();
+    this.prevFocusedEl = (document.activeElement as HTMLElement | null) || null;
     this.backdropEl?.classList.add('visible');
+
+    const focusables = Array.from(this.backdropEl?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    ) || []);
+    if (focusables.length > 0) setTimeout(() => focusables[0]?.focus(), 40);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!this.backdropEl?.classList.contains('visible')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault(); e.stopPropagation(); this.hide(); return;
+      }
+      if (e.key === 'Tab') {
+        const curFocusables = Array.from(this.backdropEl?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ) || []);
+        if (curFocusables.length === 0) return;
+        const first = curFocusables[0];
+        const last = curFocusables[curFocusables.length - 1];
+        const root = (this.backdropEl?.getRootNode() as ShadowRoot | Document) || document;
+        const active = root.activeElement || document.activeElement;
+        if (e.shiftKey) {
+          if (active === first || !this.backdropEl?.contains(active as Node)) {
+            e.preventDefault(); last?.focus();
+          }
+        } else {
+          if (active === last || !this.backdropEl?.contains(active as Node)) {
+            e.preventDefault(); first?.focus();
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, { capture: true });
+    this.trapCleanup = () => window.removeEventListener('keydown', onKeyDown, true);
   }
 
   private updateStatus(res: { success: boolean; message: string }): void {
@@ -202,6 +242,12 @@ export class AISettingsModal {
 
   public hide(): void {
     this.backdropEl?.classList.remove('visible');
+    this.trapCleanup?.();
+    this.trapCleanup = null;
+    if (this.prevFocusedEl && typeof this.prevFocusedEl.focus === 'function') {
+      try { this.prevFocusedEl.focus(); } catch {}
+      this.prevFocusedEl = null;
+    }
   }
 
   public destroy(): void {

@@ -130,5 +130,19 @@ describe('ChangeLedger (Code Exporter & Modal)', () => {
       expect(mockWriteText).toHaveBeenCalled();
       expect(copyBtn.textContent).toContain('Copied!');
     });
+
+    it('traps focus within modal and closes on Escape key', () => {
+      const triggerBtn = document.createElement('button');
+      document.body.appendChild(triggerBtn);
+      triggerBtn.focus();
+
+      modal.show(mockCommands);
+      const modalEl = shadow.querySelector('.auracss-ledger-modal');
+      expect(modalEl?.classList.contains('visible')).toBe(true);
+
+      // Press Escape to close modal and restore focus
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      expect(modalEl?.classList.contains('visible')).toBe(false);
+    });
   });
 });

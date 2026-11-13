@@ -16,6 +16,7 @@ export interface KeybindingContext {
   revertElement: (el: HTMLElement) => void;
   hierarchy: HierarchyManager;
   lockElement: (el: HTMLElement) => void;
+  showHelp: () => void;
 }
 
 export function createKeybindingHandlers(ctx: KeybindingContext): {
@@ -64,6 +65,12 @@ export function createKeybindingHandlers(ctx: KeybindingContext): {
       e.preventDefault();
       const next = e.key === 'ArrowUp' ? ctx.hierarchy.navigateUp(locked) : ctx.hierarchy.navigateDown(locked);
       if (next) ctx.lockElement(next);
+      return;
+    }
+    if (e.key === '?' || (e.shiftKey && e.key === '/') || e.key === 'F1') {
+      e.preventDefault();
+      ctx.showHelp();
+      return;
     }
   };
 

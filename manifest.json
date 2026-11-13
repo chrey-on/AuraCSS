@@ -11,8 +11,20 @@
     "http://*/*",
     "https://*/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
-    "default_title": "AuraCSS Visual Assistant"
+    "default_title": "AuraCSS Visual Assistant (Click to Toggle)"
+  },
+  "commands": {
+    "toggle-auracss": {
+      "suggested_key": {
+        "default": "Alt+A",
+        "mac": "Alt+A"
+      },
+      "description": "Toggle AuraCSS ON/OFF"
+    }
   },
   "content_scripts": [
     {

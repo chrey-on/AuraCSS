@@ -23,6 +23,7 @@ export class OverlayManager {
   private isLocked = false;
   private rafId: number | null = null;
   private cleanups: (() => void)[] = [];
+  private liveRegion: HTMLDivElement | null = null;
 
   public mount(): ShadowRoot {
     if (this.shadow) return this.shadow;
@@ -49,6 +50,13 @@ export class OverlayManager {
     ring.appendChild(pill);
     container.appendChild(ring);
     shadow.appendChild(container);
+
+    const live = document.createElement('div');
+    live.className = 'auracss-sr-live';
+    live.setAttribute('aria-live', 'polite');
+    live.setAttribute('aria-atomic', 'true');
+    shadow.appendChild(live);
+    this.liveRegion = live;
 
     if (document.body) {
       document.body.appendChild(host);
@@ -136,6 +144,15 @@ export class OverlayManager {
     this.pill = null;
     this.activeTarget = null;
     this.isLocked = false;
+    this.liveRegion = null;
+  }
+
+  public announce(msg: string): void {
+    if (!this.liveRegion) return;
+    this.liveRegion.textContent = '';
+    setTimeout(() => {
+      if (this.liveRegion) this.liveRegion.textContent = msg;
+    }, 30);
   }
 
   public getShadowRoot(): ShadowRoot | null {
@@ -178,15 +195,21 @@ export class OverlayManager {
     const badge = document.createElement('button');
     badge.className = 'auracss-min-badge';
     badge.title = 'AuraCSS (Alt+A to toggle)';
+    badge.setAttribute('aria-label', 'Expand AuraCSS Controls');
     badge.type = 'button';
     badge.innerHTML = '✦';
 
     const row = document.createElement('div');
     row.className = 'auracss-controls-row';
+    row.setAttribute('role', 'toolbar');
+    row.setAttribute('aria-label', 'AuraCSS Floating Controls');
 
     const dragHandle = document.createElement('span');
     dragHandle.className = 'auracss-controls-drag-handle';
     dragHandle.title = 'Click to minimize to right, drag to move';
+    dragHandle.setAttribute('role', 'button');
+    dragHandle.setAttribute('tabindex', '0');
+    dragHandle.setAttribute('aria-label', 'Drag controls or click to minimize');
     dragHandle.textContent = '⋮⋮';
 
     const btn = document.createElement('button');
@@ -205,6 +228,7 @@ export class OverlayManager {
 
     const exportBtn = document.createElement('button');
     exportBtn.className = 'auracss-toggle-btn auracss-export-btn';
+    exportBtn.setAttribute('aria-label', 'View change ledger and export styles');
     exportBtn.style.display = 'none';
     exportBtn.textContent = 'Export (0)';
 
@@ -214,6 +238,7 @@ export class OverlayManager {
     const minBtn = document.createElement('button');
     minBtn.className = 'auracss-min-btn';
     minBtn.title = 'Minimize controls';
+    minBtn.setAttribute('aria-label', 'Minimize floating controls');
     minBtn.type = 'button';
     minBtn.innerHTML = '–';
 
@@ -237,6 +262,7 @@ export class OverlayManager {
       stack.style.setProperty('top', `${Math.round(anchorTop)}px`, 'important');
       stack.style.setProperty('right', 'auto', 'important');
       savePosition(clampToViewport(stack));
+      this.announce('AuraCSS controls minimized');
     };
 
     minBtn.onclick = (e) => {
@@ -248,6 +274,14 @@ export class OverlayManager {
       e.stopPropagation();
       if (rowDrag.wasJustDragged()) return;
       minimizeStack();
+    };
+
+    dragHandle.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        minimizeStack();
+      }
     };
 
     btn.onclick = (e) => {
@@ -270,6 +304,7 @@ export class OverlayManager {
       stack.style.setProperty('top', `${Math.round(badgeRect.top + (badgeRect.height - expandedRect.height) / 2)}px`, 'important');
       stack.style.setProperty('right', 'auto', 'important');
       savePosition(clampToViewport(stack));
+      this.announce('AuraCSS controls expanded');
     };
 
     const handleResize = () => clampToViewport(stack);

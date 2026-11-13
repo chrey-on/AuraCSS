@@ -91,8 +91,9 @@ export function makeDraggable(
     if (!isPointerDown) return;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
+    const threshold = e.pointerType === 'touch' ? 14 : 8;
 
-    if (!hasMoved && Math.hypot(dx, dy) >= 8) {
+    if (!hasMoved && Math.hypot(dx, dy) >= threshold) {
       hasMoved = true;
       try {
         trigger.setPointerCapture(e.pointerId);

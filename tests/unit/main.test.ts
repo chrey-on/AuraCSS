@@ -344,4 +344,36 @@ describe('AuraCSSApp (Master Orchestrator & Lifecycle)', () => {
     const emptyNotice = savedPopover.querySelector('.auracss-saved-empty');
     expect(emptyNotice).not.toBeNull();
   });
+
+  it('toggles AuraCSS ON and OFF via chrome.runtime.onMessage dispatch', () => {
+    let messageListener: ((msg: unknown) => void) | null = null;
+    (globalThis as any).chrome = {
+      runtime: {
+        onMessage: {
+          addListener: (fn: (msg: unknown) => void) => { messageListener = fn; },
+          removeListener: () => {},
+        },
+      },
+    };
+
+    const extApp = new AuraCSSApp();
+    extApp.init();
+
+    const shadow = document.getElementById('auracss-root')?.shadowRoot;
+    const toggleBtn = shadow?.querySelector('.auracss-toggle-btn') as HTMLButtonElement;
+    expect(toggleBtn.textContent).toContain('AuraCSS: OFF');
+
+    // Simulate extension command / action click message
+    if (messageListener) {
+      const listener = messageListener as (msg: unknown) => void;
+      listener({ type: 'AURACSS_TOGGLE' });
+      expect(toggleBtn.textContent).toContain('AuraCSS: ON');
+
+      listener({ type: 'AURACSS_TOGGLE' });
+      expect(toggleBtn.textContent).toContain('AuraCSS: OFF');
+    }
+
+    extApp.destroy();
+    delete (globalThis as any).chrome;
+  });
 });

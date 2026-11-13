@@ -14,6 +14,8 @@ export class ChangeLedgerModal {
   private commitBtn: HTMLButtonElement | null = null;
   private currentMode: 'css' | 'tailwind' | 'jsx' = 'css';
   private commands: readonly StyleCommand[] = [];
+  private prevFocusedEl: HTMLElement | null = null;
+  private trapCleanup: (() => void) | null = null;
 
   public mount(shadow: ShadowRoot): void {
     if (this.modalEl) return;
@@ -25,6 +27,7 @@ export class ChangeLedgerModal {
     const modal = document.createElement('div');
     modal.className = 'auracss-ledger-modal';
     modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-label', 'AuraCSS Export Ledger');
 
     const card = document.createElement('div');
@@ -180,16 +183,57 @@ export class ChangeLedgerModal {
     }
 
     this.updateText();
+    this.prevFocusedEl = (document.activeElement as HTMLElement | null) || null;
     this.modalEl.classList.add('visible');
+
+    const focusables = Array.from(this.modalEl.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    ));
+    if (focusables.length > 0) setTimeout(() => focusables[0]?.focus(), 40);
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!this.modalEl?.classList.contains('visible')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault(); e.stopPropagation(); this.hide(); return;
+      }
+      if (e.key === 'Tab') {
+        const curFocusables = Array.from(this.modalEl.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ));
+        if (curFocusables.length === 0) return;
+        const first = curFocusables[0];
+        const last = curFocusables[curFocusables.length - 1];
+        const root = this.modalEl.getRootNode() as ShadowRoot | Document;
+        const active = root.activeElement || document.activeElement;
+        if (e.shiftKey) {
+          if (active === first || !this.modalEl.contains(active as Node)) {
+            e.preventDefault(); last?.focus();
+          }
+        } else {
+          if (active === last || !this.modalEl.contains(active as Node)) {
+            e.preventDefault(); first?.focus();
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown, { capture: true });
+    this.trapCleanup = () => window.removeEventListener('keydown', onKeyDown, true);
   }
 
   public hide(): void {
     if (this.modalEl) {
       this.modalEl.classList.remove('visible');
     }
+    this.trapCleanup?.();
+    this.trapCleanup = null;
+    if (this.prevFocusedEl && typeof this.prevFocusedEl.focus === 'function') {
+      try { this.prevFocusedEl.focus(); } catch {}
+      this.prevFocusedEl = null;
+    }
   }
 
   public destroy(): void {
+    this.hide();
     if (this.modalEl && this.modalEl.parentNode) {
       this.modalEl.parentNode.removeChild(this.modalEl);
     }

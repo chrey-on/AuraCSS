@@ -93,4 +93,16 @@ describe('OverlayManager (Host Isolation & FastDOM Lifecycle)', () => {
     expect(document.getElementById('auracss-root')).toBeNull();
     expect(overlay.getShadowRoot()).toBeNull();
   });
+
+  it('mounts an accessible aria-live region and dispatches announcements', async () => {
+    const shadow = overlay.mount();
+    const live = shadow.querySelector('.auracss-sr-live');
+    expect(live).not.toBeNull();
+    expect(live?.getAttribute('aria-live')).toBe('polite');
+    expect(live?.getAttribute('aria-atomic')).toBe('true');
+
+    overlay.announce('AuraCSS activated test');
+    await new Promise((r) => setTimeout(r, 60));
+    expect(live?.textContent).toBe('AuraCSS activated test');
+  });
 });
