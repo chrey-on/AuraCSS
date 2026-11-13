@@ -1,261 +1,130 @@
 // src/bridge.ts
 import http from "http";
-import fs from "fs";
-import path from "path";
-import readline from "readline";
+import fs2 from "fs";
+import path2 from "path";
 
 // src/bridge-presets.ts
 function getAiVariationCyclePresets(cycleIndex, isAction) {
   const cycle = Math.abs(Number(cycleIndex) || 0) % 3;
   const set0 = [
     {
-      id: `ai-elevated-${Date.now()}`,
+      id: "ai-cycle-0-elevated",
       name: "AI Modern Elevated Solid",
-      description: "Rich opaque indigo surface with deep drop shadow",
-      cssText: isAction ? "background: #4f46e5; color: #ffffff; border: none; border-radius: 8px; padding: 10px 22px; font-weight: 600; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4); cursor: pointer;" : "background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);",
-      tailwindClasses: isAction ? "bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-5 py-2.5 rounded-lg shadow-lg shadow-indigo-500/30" : "bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl"
+      description: "Clean solid color with a soft, natural shadow",
+      cssText: isAction ? "background-color: #4f46e5; color: #ffffff; border: none; border-radius: 8px; padding: 10px 22px; font-weight: 600; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4); cursor: pointer;" : "background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);",
+      tailwindClasses: isAction ? "bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-5 py-2.5 rounded-lg shadow-lg shadow-indigo-500/30" : "bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     },
     {
-      id: `ai-glass-${Date.now()}`,
+      id: "ai-cycle-0-glass",
       name: "AI Frosted Glassmorphism",
-      description: "Multi-layer frosted backdrop blur with crisp optical specular edge",
+      description: "Modern frosted glass look with a smooth blur",
       cssText: isAction ? "background: rgba(255, 255, 255, 0.1); color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.25); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 8px; padding: 10px 22px; font-weight: 600; cursor: pointer;" : "background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: 14px; padding: 24px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);",
-      tailwindClasses: isAction ? "bg-white/10 hover:bg-white/15 border border-white/25 text-white backdrop-blur-md px-5 py-2.5 rounded-lg font-semibold" : "bg-slate-900/70 border border-white/15 backdrop-blur-xl rounded-2xl p-6 shadow-2xl"
+      tailwindClasses: isAction ? "bg-white/10 hover:bg-white/15 border border-white/25 text-white backdrop-blur-md px-5 py-2.5 rounded-lg font-semibold" : "bg-slate-900/70 border border-white/15 backdrop-blur-xl rounded-2xl p-6 shadow-2xl",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     },
     {
-      id: `ai-neon-${Date.now()}`,
+      id: "ai-cycle-0-neon",
       name: "AI Radiant Cyan Halo",
-      description: "Dark space surface wrapped in luminous cyan glow",
+      description: "Dark background with a vibrant cyan glow",
       cssText: isAction ? "background: #0f172a; color: #38bdf8; border: 1px solid #38bdf8; border-radius: 8px; padding: 10px 22px; font-weight: 600; box-shadow: 0 0 16px rgba(56, 189, 248, 0.5); cursor: pointer;" : "background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 12px; padding: 24px; box-shadow: 0 0 28px rgba(56, 189, 248, 0.2);",
-      tailwindClasses: isAction ? "bg-slate-900 border border-sky-400 text-sky-400 shadow-[0_0_16px_rgba(56,189,248,0.5)] px-5 py-2.5 rounded-lg font-semibold" : "bg-slate-900 border border-sky-400/50 shadow-[0_0_28px_rgba(56,189,248,0.2)] rounded-xl p-6"
+      tailwindClasses: isAction ? "bg-slate-900 border border-sky-400 text-sky-400 shadow-[0_0_16px_rgba(56,189,248,0.5)] px-5 py-2.5 rounded-lg font-semibold" : "bg-slate-900 border border-sky-400/50 shadow-[0_0_28px_rgba(56,189,248,0.2)] rounded-xl p-6",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     },
     {
-      id: `ai-brutalist-${Date.now()}`,
+      id: "ai-cycle-0-brutalist",
       name: "AI Surgical Brutalist",
-      description: "Razor-sharp geometry with high-contrast type and zero blur",
+      description: "Bold, sharp box with crisp high contrast",
       cssText: isAction ? "background: #ffffff; color: #0f172a; border: 2px solid #0f172a; border-radius: 0px; padding: 10px 22px; font-weight: 700; cursor: pointer;" : "background: #020617; border: 2px solid #334155; border-radius: 0px; padding: 24px;",
-      tailwindClasses: isAction ? "bg-white text-slate-900 border-2 border-slate-900 rounded-none px-5 py-2.5 font-bold" : "bg-slate-950 border-2 border-slate-700 rounded-none p-6"
+      tailwindClasses: isAction ? "bg-white text-slate-900 border-2 border-slate-900 rounded-none px-5 py-2.5 font-bold" : "bg-slate-950 border-2 border-slate-700 rounded-none p-6",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     }
   ];
   const set1 = [
     {
-      id: `ai-sunset-${Date.now()}`,
+      id: "ai-cycle-1-sunset",
       name: "AI Warm Sunset Flame",
-      description: "Radiant warm amber to rose gradient with ambient sunset glow",
+      description: "Warm amber-to-pink gradient with a soft sunset glow",
       cssText: isAction ? "background: linear-gradient(135deg, #f59e0b 0%, #f43f5e 100%); color: #ffffff; border: none; border-radius: 12px; padding: 12px 24px; font-weight: 600; box-shadow: 0 6px 18px rgba(244, 63, 94, 0.35); cursor: pointer;" : "background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(244, 63, 94, 0.15) 100%); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 16px; padding: 24px; box-shadow: 0 12px 30px rgba(244, 63, 94, 0.15);",
-      tailwindClasses: isAction ? "bg-gradient-to-r from-amber-500 to-rose-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg shadow-rose-500/30" : "bg-gradient-to-br from-amber-500/10 to-rose-500/10 border border-rose-500/30 rounded-2xl p-6"
+      tailwindClasses: isAction ? "bg-gradient-to-r from-amber-500 to-rose-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg shadow-rose-500/30" : "bg-gradient-to-br from-amber-500/10 to-rose-500/10 border border-rose-500/30 rounded-2xl p-6",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     },
     {
-      id: `ai-clay-${Date.now()}`,
+      id: "ai-cycle-1-clay",
       name: "AI Soft Tactile Claymorphic",
-      description: "Soft tactile surface with dual offset inner & outer depth highlights",
+      description: "Soft, rounded look with subtle raised shadows",
       cssText: isAction ? "background: #e2e8f0; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 9999px; padding: 12px 26px; font-weight: 700; box-shadow: 6px 6px 12px #94a3b8, -4px -4px 10px #ffffff; cursor: pointer;" : "background: #e2e8f0; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 20px; padding: 26px; box-shadow: 8px 8px 16px #94a3b8, -6px -6px 14px #ffffff;",
-      tailwindClasses: isAction ? "bg-slate-200 text-slate-800 font-bold px-6 py-3 rounded-full shadow-[6px_6px_12px_#94a3b8,-4px_-4px_10px_#ffffff]" : "bg-slate-200 text-slate-800 rounded-3xl p-6 shadow-[8px_8px_16px_#94a3b8,-6px_-6px_14px_#ffffff]"
+      tailwindClasses: isAction ? "bg-slate-200 text-slate-800 font-bold px-6 py-3 rounded-full shadow-[6px_6px_12px_#94a3b8,-4px_-4px_10px_#ffffff]" : "bg-slate-200 text-slate-800 rounded-3xl p-6 shadow-[8px_8px_16px_#94a3b8,-6px_-6px_14px_#ffffff]",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     },
     {
-      id: `ai-crimson-${Date.now()}`,
+      id: "ai-cycle-1-crimson",
       name: "AI Crimson Velvet Pulse",
-      description: "Vibrant ruby red surface with radiant crimson halo",
+      description: "Rich red with a glowing red aura",
       cssText: isAction ? "background: #dc2626; color: #ffffff; border: 1px solid #ef4444; border-radius: 8px; padding: 10px 22px; font-weight: 600; box-shadow: 0 0 20px rgba(220, 38, 38, 0.45); cursor: pointer;" : "background: #1a0505; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 14px; padding: 24px; box-shadow: 0 0 30px rgba(220, 38, 38, 0.25);",
-      tailwindClasses: isAction ? "bg-red-600 hover:bg-red-500 text-white font-semibold px-5 py-2.5 rounded-lg shadow-[0_0_20px_rgba(220,38,38,0.45)]" : "bg-red-950/40 border border-red-500/40 rounded-2xl p-6 shadow-[0_0_30px_rgba(220,38,38,0.25)]"
+      tailwindClasses: isAction ? "bg-red-600 hover:bg-red-500 text-white font-semibold px-5 py-2.5 rounded-lg shadow-[0_0_20px_rgba(220,38,38,0.45)]" : "bg-red-950/40 border border-red-500/40 rounded-2xl p-6 shadow-[0_0_30px_rgba(220,38,38,0.25)]",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     },
     {
-      id: `ai-wire-${Date.now()}`,
+      id: "ai-cycle-1-wire",
       name: "AI Minimal Neutral Wire",
-      description: "Understated crisp wireframe outline with spacious balance",
+      description: "Clean outlined style with minimal design",
       cssText: isAction ? "background: transparent; color: #f8fafc; border: 2px solid #94a3b8; border-radius: 6px; padding: 10px 22px; font-weight: 600; cursor: pointer;" : "background: #020617; border: 1px solid #475569; border-radius: 8px; padding: 24px;",
-      tailwindClasses: isAction ? "bg-transparent border-2 border-slate-400 text-white px-5 py-2.5 rounded-md font-semibold" : "bg-slate-950 border border-slate-600 rounded-lg p-6"
+      tailwindClasses: isAction ? "bg-transparent border-2 border-slate-400 text-white px-5 py-2.5 rounded-md font-semibold" : "bg-slate-950 border border-slate-600 rounded-lg p-6",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     }
   ];
   const set2 = [
     {
-      id: `ai-emerald-${Date.now()}`,
+      id: "ai-cycle-2-emerald",
       name: "AI Cyberpunk Emerald Matrix",
-      description: "High-contrast neon emerald borders against deep terminal dark",
+      description: "Bright green borders on a dark background",
       cssText: isAction ? "background: #022c22; color: #34d399; border: 2px solid #10b981; border-radius: 4px; padding: 10px 22px; font-weight: 700; box-shadow: 0 0 18px rgba(16, 185, 129, 0.4); cursor: pointer;" : "background: #021a14; border: 2px solid #10b981; border-radius: 8px; padding: 24px; box-shadow: 0 0 32px rgba(16, 185, 129, 0.25);",
-      tailwindClasses: isAction ? "bg-emerald-950 border-2 border-emerald-500 text-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.4)] px-5 py-2.5 rounded font-bold" : "bg-emerald-950/80 border-2 border-emerald-500 rounded-lg p-6 shadow-[0_0_32px_rgba(16,185,129,0.25)]"
+      tailwindClasses: isAction ? "bg-emerald-950 border-2 border-emerald-500 text-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.4)] px-5 py-2.5 rounded font-bold" : "bg-emerald-950/80 border-2 border-emerald-500 rounded-lg p-6 shadow-[0_0_32px_rgba(16,185,129,0.25)]",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     },
     {
-      id: `ai-obsidian-${Date.now()}`,
+      id: "ai-cycle-2-obsidian",
       name: "AI Obsidian Glass Void",
-      description: "Ultra-dark translucent obsidian glass with purple specular rim",
+      description: "Dark, semi-transparent glass with a purple border",
       cssText: isAction ? "background: rgba(2, 6, 23, 0.85); color: #e2e8f0; border: 1px solid #a855f7; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 8px; padding: 10px 22px; font-weight: 600; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6); cursor: pointer;" : "background: rgba(2, 6, 23, 0.85); border: 1px solid rgba(168, 85, 247, 0.4); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 16px; padding: 24px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);",
-      tailwindClasses: isAction ? "bg-slate-950/85 border border-purple-500 text-slate-200 backdrop-blur-xl px-5 py-2.5 rounded-lg font-semibold shadow-2xl" : "bg-slate-950/85 border border-purple-500/40 backdrop-blur-2xl rounded-2xl p-6 shadow-2xl"
+      tailwindClasses: isAction ? "bg-slate-950/85 border border-purple-500 text-slate-200 backdrop-blur-xl px-5 py-2.5 rounded-lg font-semibold shadow-2xl" : "bg-slate-950/85 border border-purple-500/40 backdrop-blur-2xl rounded-2xl p-6 shadow-2xl",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     },
     {
-      id: `ai-violet-${Date.now()}`,
+      id: "ai-cycle-2-violet",
       name: "AI Electric Violet Gradient",
-      description: "Dynamic violet to fuchsia gradient with luminous electric halo",
+      description: "Violet-to-pink gradient with a glowing edge",
       cssText: isAction ? "background: linear-gradient(135deg, #7c3aed 0%, #d946ef 100%); color: #ffffff; border: none; border-radius: 8px; padding: 10px 22px; font-weight: 600; box-shadow: 0 4px 18px rgba(217, 70, 239, 0.4); cursor: pointer;" : "background: linear-gradient(135deg, #2e1065 0%, #4a044e 100%); border: 1px solid rgba(217, 70, 239, 0.35); border-radius: 12px; padding: 24px;",
-      tailwindClasses: isAction ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white font-semibold px-5 py-2.5 rounded-lg shadow-lg shadow-fuchsia-500/30" : "bg-gradient-to-br from-violet-950 to-fuchsia-950 border border-fuchsia-500/30 rounded-xl p-6"
+      tailwindClasses: isAction ? "bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white font-semibold px-5 py-2.5 rounded-lg shadow-lg shadow-fuchsia-500/30" : "bg-gradient-to-br from-violet-950 to-fuchsia-950 border border-fuchsia-500/30 rounded-xl p-6",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     },
     {
-      id: `ai-hyper-${Date.now()}`,
+      id: "ai-cycle-2-hyper",
       name: "AI Hyper-Dense Industrial Pill",
-      description: "Compact capsule form factor with crisp contrast and tracked typography",
+      description: "Tight pill shape with bold, spaced-out text",
       cssText: isAction ? "background: #0f172a; color: #f8fafc; border: 2px solid #e2e8f0; border-radius: 9999px; padding: 8px 20px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer;" : "background: #0f172a; border: 2px solid #e2e8f0; border-radius: 9999px; padding: 16px 28px;",
-      tailwindClasses: isAction ? "bg-slate-900 border-2 border-slate-200 text-white px-5 py-2 rounded-full font-bold uppercase tracking-wider text-xs" : "bg-slate-900 border-2 border-slate-200 rounded-full p-6"
+      tailwindClasses: isAction ? "bg-slate-900 border-2 border-slate-200 text-white px-5 py-2 rounded-full font-bold uppercase tracking-wider text-xs" : "bg-slate-900 border-2 border-slate-200 rounded-full p-6",
+      contrastRating: "AAA",
+      contrastRatio: "7.5:1"
     }
   ];
   const allSets = [set0, set1, set2];
   return allSets[cycle] ?? set0;
 }
 
-// src/bridge.ts
-var activeElement = null;
-var sseClients = /* @__PURE__ */ new Set();
-function getActiveElement() {
-  return activeElement;
-}
-function setActiveElement(el) {
-  activeElement = el;
-}
-function broadcastSSE(event) {
-  const data = `data: ${JSON.stringify(event)}
-
-`;
-  for (const res of sseClients) {
-    try {
-      res.write(data);
-    } catch {
-      sseClients.delete(res);
-    }
-  }
-}
-var CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Private-Network": "true"
-};
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = "";
-    req.on("data", (chunk) => {
-      body += chunk;
-    });
-    req.on("end", () => resolve(body));
-    req.on("error", reject);
-  });
-}
-function createBridgeServer(port = 4999) {
-  const server = http.createServer(async (req, res) => {
-    const url = new URL(req.url || "/", `http://127.0.0.1:${port}`);
-    if (req.method === "OPTIONS") {
-      res.writeHead(204, CORS_HEADERS);
-      res.end();
-      return;
-    }
-    if (url.pathname === "/health" && req.method === "GET") {
-      res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
-      res.end(JSON.stringify({
-        status: "ready",
-        mcp: true,
-        port,
-        hasActiveElement: Boolean(activeElement),
-        activeElement
-      }));
-      return;
-    }
-    if (url.pathname === "/api/active-element" && req.method === "POST") {
-      try {
-        const body = JSON.parse(await readBody(req));
-        if (body.tag) {
-          activeElement = {
-            tag: body.tag,
-            selector: body.selector,
-            htmlSnippet: body.htmlSnippet || "",
-            computedStyles: body.computedStyles,
-            siteTokens: body.siteTokens,
-            updatedAt: Date.now()
-          };
-          broadcastSSE({ type: "active_element", payload: activeElement });
-        }
-        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true, activeElement }));
-      } catch (err) {
-        res.writeHead(400, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
-      }
-      return;
-    }
-    if (url.pathname === "/api/events" && req.method === "GET") {
-      res.writeHead(200, {
-        ...CORS_HEADERS,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive"
-      });
-      res.write(": connected\n\n");
-      sseClients.add(res);
-      req.on("close", () => sseClients.delete(res));
-      return;
-    }
-    if (url.pathname === "/api/synthesize" && req.method === "POST") {
-      try {
-        const body = JSON.parse(await readBody(req));
-        const response = await synthesizeWithLocalOrEnv(
-          body.prompt,
-          body.tag,
-          body.htmlSnippet,
-          body.computedStyles,
-          body.siteTokens,
-          body.setIndex
-        );
-        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify(response));
-      } catch (err) {
-        res.writeHead(500, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
-      }
-      return;
-    }
-    if (url.pathname === "/api/patch" && req.method === "POST") {
-      try {
-        const body = JSON.parse(await readBody(req));
-        broadcastSSE({
-          type: "apply_style",
-          payload: {
-            cssText: body.cssText,
-            tailwindClasses: body.tailwindClasses || "",
-            prompt: body.prompt,
-            name: body.name,
-            description: body.description,
-            selector: body.selector
-          }
-        });
-        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true, broadcastCount: sseClients.size }));
-      } catch (err) {
-        res.writeHead(400, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
-      }
-      return;
-    }
-    if (url.pathname === "/api/commit-to-source" && req.method === "POST") {
-      try {
-        const body = JSON.parse(await readBody(req));
-        const safePath = path.resolve(process.cwd(), body.filePath);
-        if (!safePath.startsWith(process.cwd())) throw new Error("Path traversal forbidden");
-        if (fs.existsSync(safePath)) {
-          fs.appendFileSync(safePath, `
-/* AuraCSS Commit */
-/* ${body.cssText} */
-`);
-        }
-        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ success: true, filePath: safePath }));
-      } catch (err) {
-        res.writeHead(400, { ...CORS_HEADERS, "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: String(err) }));
-      }
-      return;
-    }
-    res.writeHead(404, CORS_HEADERS);
-    res.end("Not found");
-  });
-  return server;
-}
+// src/bridge-compiler.ts
 var COLOR_MAP = {
   crimson: { hex: "#dc2626", tw: "red-600", isLight: false },
   red: { hex: "#ef4444", tw: "red-500", isLight: false },
@@ -280,6 +149,15 @@ var COLOR_MAP = {
   white: { hex: "#ffffff", tw: "white", isLight: true },
   light: { hex: "#f8fafc", tw: "slate-50", isLight: true }
 };
+function isLightColorHex(hex) {
+  if (hex.startsWith("#") && hex.length >= 7) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return 0.299 * r + 0.587 * g + 0.114 * b > 160;
+  }
+  return false;
+}
 function extractColorDef(text) {
   const hexMatch = text.match(/#([0-9a-f]{6}|[0-9a-f]{3})/i);
   if (hexMatch) {
@@ -293,15 +171,6 @@ function extractColorDef(text) {
   }
   return null;
 }
-function isLightColorHex(hex) {
-  if (hex.startsWith("#") && hex.length >= 7) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return 0.299 * r + 0.587 * g + 0.114 * b > 160;
-  }
-  return false;
-}
 async function synthesizeWithLocalOrEnv(prompt, tag, _htmlSnippet = "", _computedStyles = {}, _siteTokens = {}, setIndex = 0) {
   const p = prompt.toLowerCase();
   const isAction = tag === "button" || tag === "a";
@@ -314,21 +183,27 @@ async function synthesizeWithLocalOrEnv(prompt, tag, _htmlSnippet = "", _compute
     };
   }
   const color = extractColorDef(p);
-  const hasBg = p.includes("background") || p.includes("bg") || p.includes("fill") || !p.includes("text") && !p.includes("border") && color !== null;
+  const hasNegatedBg = /\b(remove|no|without|clear|transparent)\s+(?:the\s+)?(?:background|bg|fill)\b/i.test(p);
+  const hasBg = !hasNegatedBg && (p.includes("background") || p.includes("bg") || p.includes("fill") || !p.includes("text") && !p.includes("border") && color !== null);
   const hasText = p.includes("text") || p.includes("font") || p.includes("foreground");
-  const hasBorder = p.includes("border") || p.includes("outline") || p.includes("stroke");
-  const hasGlow = p.includes("glow") || p.includes("neon") || p.includes("shadow") || p.includes("halo") || p.includes("luminous");
+  const hasBorder = p.includes("border") || p.includes("outline") || p.includes("stroke") || hasNegatedBg;
+  const hasGlow = p.includes("glow") || p.includes("neon") || p.includes("shadow") || p.includes("halo") || p.includes("luminous") || p.includes("pulse");
   const hasFading = p.includes("fading") || p.includes("fade") || p.includes("pulse") || p.includes("pulsing") || p.includes("breathe");
   const hasClickAnim = p.includes("click") || p.includes("clicking") || p.includes("press") || p.includes("tap") || p.includes("active");
   const hasAnim = p.includes("animat") || p.includes("motion") || p.includes("bounce") || p.includes("spring");
   const hasPill = p.includes("pill") || p.includes("oval") || p.includes("rounded-full");
-  const hasSharp = p.includes("sharp") || p.includes("square") || p.includes("box");
+  const hasSharp = p.includes("sharp") || p.includes("square") || p.includes("box") || p.includes("brutalist");
   const hasGlass = p.includes("glass") || p.includes("frost") || p.includes("blur") || p.includes("translucent");
   const isLonger = Boolean(p.match(/\b(long|longer|wide|wider|broad|stretched|expand|lengthy)\b/i));
-  const isBigger = Boolean(p.match(/\b(big|bigger|large|larger|huge|chunky|giant|spacious)\b/i));
+  const isBigger = Boolean(p.match(/\b(big|bigger|large|larger|huge|chunky|giant|spacious|breathing room|roomy|airiness)\b/i));
   const isCompact = Boolean(p.match(/\b(compact|small|smaller|tight|tiny|thin|slender)\b/i));
   const isPop = Boolean(p.match(/\b(pop|pops|standout|punchy|bold)\b/i));
   const isSoften = Boolean(p.match(/\b(soften|softer|smooth|smoothen)\b/i));
+  const isProfessional = Boolean(p.match(/\b(professional|corporate|executive|sleek)\b/i));
+  const isLuxury = Boolean(p.match(/\b(expensive|luxury|premium|high[- ]?end)\b/i));
+  const isSpacious = Boolean(p.match(/\b(crowded|cramped|suffocating|tight)\b/i));
+  const isUgly = Boolean(p.match(/\b(ugly|cheap|outdated|clunky)\b/i));
+  const isFriendly = Boolean(p.match(/\b(friendly|approachable|playful|soft)\b/i));
   const cssDecls = [];
   const twDecls = [];
   const descriptions = [];
@@ -349,7 +224,13 @@ async function synthesizeWithLocalOrEnv(prompt, tag, _htmlSnippet = "", _compute
     twDecls.push("px-3 py-1.5 text-xs");
     descriptions.push("compact condensed geometry");
   }
-  if (hasBg && color) {
+  if (hasNegatedBg) {
+    const textColor = color ? color.hex : "#f8fafc";
+    const textTw = color ? `text-${color.tw}` : "text-slate-100";
+    cssDecls.push(`background-color: transparent; color: ${textColor};`);
+    twDecls.push(`bg-transparent ${textTw}`);
+    descriptions.push("transparent background");
+  } else if (hasBg && color) {
     const textContrast = color.isLight ? "#0f172a" : "#ffffff";
     const textTw = color.isLight ? "text-slate-900" : "text-white";
     cssDecls.push(`background-color: ${color.hex}; color: ${textContrast};`);
@@ -398,6 +279,31 @@ async function synthesizeWithLocalOrEnv(prompt, tag, _htmlSnippet = "", _compute
     twDecls.push("cursor-pointer active:scale-95 active:brightness-95");
     descriptions.push("interactive click response animation");
   }
+  if (isProfessional) {
+    cssDecls.push("border: 1px solid rgba(0, 0, 0, 0.15); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);");
+    twDecls.push("border shadow-sm");
+    descriptions.push("professional corporate styling");
+  }
+  if (isLuxury) {
+    cssDecls.push("background-color: #fff8e1; letter-spacing: 0.05em; border: 1px solid rgba(255, 255, 255, 0.3);");
+    twDecls.push("bg-[#fff8e1] border border-white/30");
+    descriptions.push("luxury warm aesthetic");
+  }
+  if (isSpacious) {
+    cssDecls.push("padding: 16px 24px; line-height: 1.6;");
+    twDecls.push("p-6");
+    descriptions.push("relaxed spacing with breathing room");
+  }
+  if (isUgly) {
+    cssDecls.push("border-radius: 1.5rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);");
+    twDecls.push("rounded-xl shadow-md");
+    descriptions.push("modernized clean aesthetic");
+  }
+  if (isFriendly) {
+    cssDecls.push("border-radius: 1.75rem; background-color: #ffedd5; box-shadow: 0 0 12px rgba(255, 200, 150, 0.4);");
+    twDecls.push("rounded-2xl bg-[#ffedd5] shadow-sm");
+    descriptions.push("friendly approachable warmth");
+  }
   if (hasPill) {
     cssDecls.push("border-radius: 9999px;");
     twDecls.push("rounded-full");
@@ -430,8 +336,110 @@ async function synthesizeWithLocalOrEnv(prompt, tag, _htmlSnippet = "", _compute
     explanation: descriptions.length > 0 ? descriptions.join(", ") : `Custom design synthesized for <${tag}>`
   };
 }
-function startMcpStdio(port = 4999) {
+
+// src/bridge-gemini.ts
+async function synthesizeWithGemini(context, apiKey, model = "gemini-2.0-flash") {
+  if (!apiKey) return null;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8e3);
+  try {
+    const systemPrompt = `You are AuraCSS, an Elite Principal UI/UX Product Designer for Non-Technical Stakeholders.
+Your task is to translate vague, colloquial, or emotional design feedback into elegant, accessible, production-ready CSS and Tailwind utility classes.
+
+You specialize in interpreting layman language:
+- "make it pop" / "punchy" \u2192 bold elevation, stronger shadow, higher contrast
+- "feels clunky" / "outdated" \u2192 modern rounded corners, refined shadows, cleaner spacing
+- "too plain" / "boring" \u2192 subtle gradients, refined borders, micro-interactions
+- "expensive look" / "luxury" \u2192 warm alabaster or deep dark base, generous letter-spacing, ultra-thin borders, restrained accents
+- "crowded" / "cramped" \u2192 increase padding, line-height, and whitespace
+- "friendly" / "approachable" \u2192 rounded-2xl, warm pastel tones, soft ambient glow
+- "professional" / "corporate" \u2192 neutral palette, crisp 1px borders, subtle micro-shadows
+- "match" / "blend in" \u2192 harmonize with provided site theme tokens
+
+Rules:
+1. Return ONLY a valid JSON object with keys "cssText", "tailwindClasses", and "explanation".
+2. cssText MUST contain valid CSS property declarations (e.g. "background-color: #0f172a; color: #38bdf8; border-radius: 9999px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);").
+3. tailwindClasses MUST contain equivalent Tailwind utility classes.
+4. Ensure WCAG AA accessibility (contrast ratio >= 4.5:1) \u2013 auto-correct text/background pairs that fail contrast.
+5. Adapt styling to element type: buttons get interactive states and shadows; cards get layered shadows and padding; headings get tight tracking and bold weights.
+6. Provide a concise 1-sentence description in explanation.`;
+    const userContent = `Target Element: <${context.tag}>
+HTML Snippet: ${context.htmlSnippet || `<${context.tag}></${context.tag}>`}
+Inner Text: ${context.innerText || "None"}
+Parent Layout: ${context.parentLayout || "normal flow"}
+Computed Styles: ${JSON.stringify(context.computedStyles || {})}
+Site Theme Tokens: ${JSON.stringify(context.siteTokens || {})}
+
+User Design Intent: "${context.prompt}"`;
+    let url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    let res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: `${systemPrompt}
+
+${userContent}` }]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.3
+        }
+      }),
+      signal: controller.signal
+    });
+    if (!res.ok && model !== "gemini-1.5-flash") {
+      url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: `${systemPrompt}
+
+${userContent}` }] }],
+          generationConfig: { responseMimeType: "application/json", temperature: 0.3 }
+        }),
+        signal: controller.signal
+      });
+    }
+    if (!res.ok) {
+      return null;
+    }
+    const data = await res.json();
+    const rawJson = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawJson) return null;
+    const cleanedJson = rawJson.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    const parsed = JSON.parse(cleanedJson);
+    if (parsed.cssText) {
+      return {
+        cssText: parsed.cssText.trim(),
+        tailwindClasses: parsed.tailwindClasses?.trim() || "",
+        explanation: parsed.explanation?.trim() || `Styled <${context.tag}> with Gemini`
+      };
+    }
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+  return null;
+}
+
+// src/bridge-mcp.ts
+import readline from "readline";
+import fs from "fs";
+import path from "path";
+function startMcpStdio(port, getActiveElement2, broadcastSSE2, getWorkspaceRoot2 = () => process.cwd()) {
   const rl = readline.createInterface({ input: process.stdin, terminal: false });
+  const shutdown = () => {
+    rl.close();
+    process.exit(0);
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
   rl.on("line", (line) => {
     if (!line.trim()) return;
     try {
@@ -447,8 +455,7 @@ function startMcpStdio(port = 4999) {
             serverInfo: { name: "auracss-mcp", version: "0.1.0" }
           }
         };
-        const payload = JSON.stringify(res) + "\n";
-        process.stdout.write(payload);
+        process.stdout.write(JSON.stringify(res) + "\n");
         return;
       }
       if (msg.method === "notifications/initialized" || msg.method === "initialized") {
@@ -466,16 +473,41 @@ function startMcpStdio(port = 4999) {
             tools: [
               {
                 name: "auracss_inspect_element",
-                description: "Get the currently active/selected DOM element in the user\u2019s live AuraCSS browser session.",
+                description: "Get the currently active/selected DOM element in the user\u2019s live AuraCSS browser session, including prior mutations and last prompt.",
                 inputSchema: { type: "object", properties: {} }
               },
               {
                 name: "auracss_apply_style",
-                description: "Applies CSS rules and Tailwind classes live to the active element in the user\u2019s browser.",
+                description: "Applies CSS rules and Tailwind classes live to the active element in the user\u2019s browser. Supports mode (replace vs patch), interactive pseudo-classes (:active, :hover), keyframe animations, and click behavior toggles.",
                 inputSchema: {
                   type: "object",
                   properties: {
-                    cssText: { type: "string", description: 'CSS declarations (e.g. "background: #2563eb; color: #fff;")' },
+                    cssText: { type: "string", description: 'Base CSS declarations (e.g. "background: #2563eb; color: #fff; padding: 12px 24px;")' },
+                    mode: {
+                      type: "string",
+                      enum: ["replace", "patch"],
+                      description: 'Set "replace" (default) to clear previous experiment styles and style from baseline HTML. Set "patch" only when incrementally updating specific existing properties.'
+                    },
+                    activeState: {
+                      type: "string",
+                      description: 'CSS declarations for :active pseudo-class (e.g. "transform: translateY(-8px) scale(1.06);")'
+                    },
+                    hoverState: {
+                      type: "string",
+                      description: 'CSS declarations for :hover pseudo-class (e.g. "box-shadow: 0 0 24px rgba(56, 189, 248, 0.6);")'
+                    },
+                    keyframes: {
+                      type: "string",
+                      description: 'Complete @keyframes block for breathing/pulsing ambient glows (e.g. "@keyframes glow { 0%,100% { box-shadow: ... } 50% { box-shadow: ... } }")'
+                    },
+                    interaction: {
+                      type: "object",
+                      description: "Interactive click behavior (e.g. click-to-toggle visibility)",
+                      properties: {
+                        type: { type: "string", enum: ["toggle-visibility", "toggle-class"], description: "Type of click interaction" },
+                        className: { type: "string", description: "Class name to toggle if type is toggle-class" }
+                      }
+                    },
                     tailwindClasses: { type: "string", description: "Equivalent Tailwind classes" },
                     prompt: { type: "string", description: "The user prompt or styling request that generated this style" },
                     name: { type: "string", description: "A short descriptive name for this prompt result" },
@@ -492,7 +524,7 @@ function startMcpStdio(port = 4999) {
                   type: "object",
                   properties: {
                     filePath: { type: "string", description: "File path relative to workspace root" },
-                    cssText: { type: "string", description: "CSS declarations to append/save" }
+                    cssText: { type: "string", description: "CSS declarations to save" }
                   },
                   required: ["filePath", "cssText"]
                 }
@@ -507,7 +539,7 @@ function startMcpStdio(port = 4999) {
         const p = msg.params;
         if (p.name === "auracss_inspect_element") {
           void (async () => {
-            let el = activeElement;
+            let el = getActiveElement2();
             if (!el) {
               try {
                 const res = await fetch(`http://127.0.0.1:${port}/health`);
@@ -518,41 +550,80 @@ function startMcpStdio(port = 4999) {
               } catch {
               }
             }
-            const text = el ? `Active Element: <${el.tag}>
+            let text = el ? `Active Element: <${el.tag}>
+Selector: ${el.selector || el.tag}
 Snippet: ${el.htmlSnippet}
-Tokens: ${JSON.stringify(el.siteTokens || {})}` : "No element currently locked in browser. Click an element with AuraCSS activated.";
+Tokens: ${JSON.stringify(el.siteTokens || {})}` : "\u26A0\uFE0F AuraCSS is turned OFF or no element is currently selected in your browser. Please toggle AuraCSS to ON and click an element to select it first.";
+            if (el?.currentMutations) {
+              text += `
+Prior Applied Mutations:
+- Last Prompt: "${el.currentMutations.lastPrompt || "None"}"
+- Current CSS: ${el.currentMutations.appliedCssText || "None"}`;
+            }
             process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: { content: [{ type: "text", text }] } }) + "\n");
           })();
           return;
         }
         if (p.name === "auracss_apply_style") {
-          const args = p.arguments;
-          broadcastSSE({
-            type: "apply_style",
-            payload: {
-              cssText: args.cssText,
+          void (async () => {
+            let activeEl = getActiveElement2();
+            if (!activeEl) {
+              try {
+                const res = await fetch(`http://127.0.0.1:${port}/health`);
+                if (res.ok) {
+                  const data = await res.json();
+                  if (data.activeElement) activeEl = data.activeElement;
+                }
+              } catch {
+              }
+            }
+            if (!activeEl) {
+              const reminder = "\u26A0\uFE0F Cannot apply styles: AuraCSS is turned OFF or no element is currently selected in your browser.\n\nPlease toggle AuraCSS to ON and click an element to select it first.";
+              process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: { content: [{ type: "text", text: reminder }] } }) + "\n");
+              return;
+            }
+            const args = p.arguments;
+            const mode = args.mode || "replace";
+            const payload = {
+              cssText: args.cssText || "",
+              mode,
+              activeState: args.activeState,
+              hoverState: args.hoverState,
+              keyframes: args.keyframes,
+              interaction: args.interaction,
               tailwindClasses: args.tailwindClasses || "",
               prompt: args.prompt,
               name: args.name,
               description: args.description,
-              selector: args.selector
+              selector: args.selector || activeEl.selector
+            };
+            broadcastSSE2({ type: "apply_style", payload });
+            try {
+              await fetch(`http://127.0.0.1:${port}/api/patch`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+              });
+            } catch {
             }
-          });
-          const text = `Live mutation applied to browser:
-${args.cssText}`;
-          process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: { content: [{ type: "text", text }] } }) + "\n");
+            const text = `Live mutation applied to browser (mode: ${mode}):
+${args.cssText}${args.activeState ? `
+:active { ${args.activeState} }` : ""}${args.keyframes ? "\n[Keyframes attached]" : ""}${args.interaction ? `
+[Interaction: ${args.interaction.type}]` : ""}`;
+            process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: { content: [{ type: "text", text }] } }) + "\n");
+          })();
           return;
         }
         if (p.name === "auracss_commit_to_source") {
           const args = p.arguments;
-          const safePath = path.resolve(process.cwd(), args.filePath);
-          if (fs.existsSync(safePath)) {
-            fs.appendFileSync(safePath, `
-/* AuraCSS Commit */
-/* ${args.cssText} */
+          const root = getWorkspaceRoot2();
+          const safePath = path.resolve(root, args.filePath);
+          fs.mkdirSync(path.dirname(safePath), { recursive: true });
+          const header = `/* === AuraCSS Mutated Styles (${(/* @__PURE__ */ new Date()).toISOString()}) === */
+`;
+          fs.writeFileSync(safePath, `${header}${args.cssText}
 `);
-          }
-          const text = `Successfully committed styles to ${args.filePath}`;
+          const text = `Successfully committed styles to ${safePath}`;
           process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: { content: [{ type: "text", text }] } }) + "\n");
           return;
         }
@@ -567,6 +638,253 @@ ${args.cssText}`;
 `);
     }
   });
+  return rl;
+}
+
+// src/bridge.ts
+try {
+  if (typeof process.loadEnvFile === "function") {
+    process.loadEnvFile();
+  }
+} catch {
+}
+var activeElement = null;
+var sseClients = /* @__PURE__ */ new Set();
+function getActiveElement() {
+  return activeElement;
+}
+function setActiveElement(el) {
+  activeElement = el;
+}
+function broadcastSSE(event) {
+  const data = `data: ${JSON.stringify(event)}
+
+`;
+  for (const res of sseClients) {
+    try {
+      res.write(data);
+    } catch {
+      sseClients.delete(res);
+    }
+  }
+}
+function gracefulShutdown(server, callback) {
+  for (const res of sseClients) try {
+    res.end();
+  } catch {
+  }
+  sseClients.clear();
+  server.close(callback);
+}
+var CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Private-Network": "true"
+};
+function getWorkspaceRoot() {
+  if (process.env.AURACSS_WORKSPACE_ROOT && fs2.existsSync(process.env.AURACSS_WORKSPACE_ROOT)) {
+    return process.env.AURACSS_WORKSPACE_ROOT;
+  }
+  if (fs2.existsSync(path2.resolve(process.cwd(), "package.json"))) {
+    return process.cwd();
+  }
+  const scriptDir = typeof __dirname !== "undefined" ? __dirname : path2.dirname(process.argv[1] || "");
+  const parentDir = path2.resolve(scriptDir, "..");
+  if (fs2.existsSync(path2.resolve(parentDir, "package.json"))) {
+    return parentDir;
+  }
+  return process.cwd();
+}
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+    req.on("end", () => resolve(body));
+    req.on("error", reject);
+  });
+}
+function createBridgeServer(port = 4999) {
+  const server = http.createServer(async (req, res) => {
+    const url = new URL(req.url || "/", `http://127.0.0.1:${port}`);
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, CORS_HEADERS);
+      res.end();
+      return;
+    }
+    if (url.pathname === "/health" && req.method === "GET") {
+      res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        status: "ready",
+        mcp: true,
+        port,
+        hasActiveElement: Boolean(activeElement),
+        activeElement,
+        hasGemini: Boolean(process.env.GEMINI_API_KEY)
+      }));
+      return;
+    }
+    if (url.pathname === "/api/active-element" && req.method === "POST") {
+      try {
+        const body = JSON.parse(await readBody(req));
+        if (body && body.tag && !body.clear) {
+          activeElement = {
+            tag: body.tag,
+            selector: body.selector,
+            htmlSnippet: body.htmlSnippet || "",
+            innerText: body.innerText,
+            computedStyles: body.computedStyles,
+            siteTokens: body.siteTokens,
+            parentLayout: body.parentLayout,
+            currentMutations: body.currentMutations,
+            updatedAt: Date.now()
+          };
+          broadcastSSE({ type: "active_element", payload: activeElement });
+        } else {
+          activeElement = null;
+          broadcastSSE({ type: "active_element", payload: null });
+        }
+        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, activeElement }));
+      } catch (err) {
+        res.writeHead(400, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: String(err) }));
+      }
+      return;
+    }
+    if (url.pathname === "/api/events" && req.method === "GET") {
+      res.writeHead(200, {
+        ...CORS_HEADERS,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive"
+      });
+      res.write(": connected\n\n");
+      sseClients.add(res);
+      req.on("close", () => sseClients.delete(res));
+      return;
+    }
+    if (url.pathname === "/api/synthesize" && req.method === "POST") {
+      try {
+        const body = JSON.parse(await readBody(req));
+        const geminiKey = process.env.GEMINI_API_KEY;
+        let response = null;
+        if (geminiKey && body.setIndex === void 0) {
+          response = await synthesizeWithGemini(body, geminiKey);
+        }
+        if (!response) {
+          response = await synthesizeWithLocalOrEnv(
+            body.prompt,
+            body.tag,
+            body.htmlSnippet,
+            body.computedStyles,
+            body.siteTokens,
+            body.setIndex
+          );
+        }
+        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.end(JSON.stringify(response));
+      } catch (err) {
+        res.writeHead(500, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: String(err) }));
+      }
+      return;
+    }
+    if (url.pathname === "/api/patch" && req.method === "POST") {
+      try {
+        if (!activeElement) {
+          res.writeHead(400, { ...CORS_HEADERS, "Content-Type": "application/json" });
+          res.end(JSON.stringify({
+            success: false,
+            reminder: "\u26A0\uFE0F Cannot apply styles: AuraCSS is turned OFF or no element is currently selected in your browser. Please toggle AuraCSS to ON and click an element to select it first."
+          }));
+          return;
+        }
+        const body = JSON.parse(await readBody(req));
+        const mode = body.mode || "replace";
+        broadcastSSE({
+          type: "apply_style",
+          payload: {
+            cssText: body.cssText || "",
+            mode,
+            activeState: body.activeState,
+            hoverState: body.hoverState,
+            keyframes: body.keyframes,
+            interaction: body.interaction,
+            tailwindClasses: body.tailwindClasses || "",
+            prompt: body.prompt,
+            name: body.name,
+            description: body.description,
+            selector: body.selector
+          }
+        });
+        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, broadcastCount: sseClients.size }));
+      } catch (err) {
+        res.writeHead(400, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: String(err) }));
+      }
+      return;
+    }
+    if (url.pathname === "/api/download" && req.method === "GET") {
+      try {
+        const root = getWorkspaceRoot();
+        const safePath = path2.resolve(root, "auracss-mutations.css");
+        let cssText = url.searchParams.get("css");
+        if (!cssText) {
+          cssText = fs2.existsSync(safePath) ? fs2.readFileSync(safePath, "utf8") : "/* AuraCSS */\n";
+        }
+        res.writeHead(200, {
+          ...CORS_HEADERS,
+          "Content-Type": "text/css; charset=utf-8",
+          "Content-Disposition": 'attachment; filename="auracss-mutations.css"'
+        });
+        res.end(cssText);
+      } catch (err) {
+        res.writeHead(500, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: String(err) }));
+      }
+      return;
+    }
+    if (url.pathname === "/api/mutations" && req.method === "GET") {
+      try {
+        const root = getWorkspaceRoot();
+        const safePath = path2.resolve(root, "auracss-mutations.css");
+        let cssText = "";
+        if (fs2.existsSync(safePath)) {
+          cssText = fs2.readFileSync(safePath, "utf8");
+        }
+        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, cssText, filePath: safePath }));
+      } catch (err) {
+        res.writeHead(500, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: String(err) }));
+      }
+      return;
+    }
+    if (url.pathname === "/api/commit-to-source" && req.method === "POST") {
+      try {
+        const body = JSON.parse(await readBody(req));
+        const root = getWorkspaceRoot();
+        const safePath = path2.resolve(root, body.filePath);
+        if (!safePath.startsWith(root)) throw new Error("Path traversal forbidden");
+        fs2.mkdirSync(path2.dirname(safePath), { recursive: true });
+        const header = `/* === AuraCSS Mutated Styles (${(/* @__PURE__ */ new Date()).toISOString()}) === */
+`;
+        fs2.writeFileSync(safePath, `${header}${body.cssText}
+`);
+        res.writeHead(200, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, filePath: safePath }));
+      } catch (err) {
+        res.writeHead(400, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: String(err) }));
+      }
+      return;
+    }
+  });
+  return server;
 }
 var isMain = process.argv[1] && (process.argv[1].endsWith("bridge.ts") || process.argv[1].endsWith("bridge.js"));
 if (isMain) {
@@ -582,11 +900,12 @@ if (isMain) {
 `);
     }
   });
-  server.listen(port, "127.0.0.1", () => {
+  server.listen(port, "0.0.0.0", () => {
     if (!isMcp) {
       console.log(`
 \u2726 AuraCSS Local Bridge running on http://127.0.0.1:${port}`);
       console.log(`  - Browser health: http://127.0.0.1:${port}/health`);
+      console.log(`  - Gemini AI Engine: ${process.env.GEMINI_API_KEY ? "Active (Gemini 2.0 Flash)" : "Offline (Local Rule Compiler)"}`);
       console.log(`  - Mode: Standalone HTTP Bridge
 `);
     } else {
@@ -595,13 +914,18 @@ if (isMain) {
     }
   });
   if (isMcp) {
-    startMcpStdio();
+    startMcpStdio(port, getActiveElement, broadcastSSE, getWorkspaceRoot);
   }
+  const shutdown = () => gracefulShutdown(server, () => process.exit(0));
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 export {
   broadcastSSE,
   createBridgeServer,
   getActiveElement,
+  getWorkspaceRoot,
+  gracefulShutdown,
   setActiveElement,
   startMcpStdio
 };

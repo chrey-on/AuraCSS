@@ -1,20 +1,7 @@
-import { OverlayManager } from './overlay';
-import { HierarchyManager, formatElementLabel } from './hierarchy';
-import { AuraHarvester, parseColor, calculateLuminance } from './harvester';
-import { AuraSuggester, VariationDock } from './suggester';
-import { CommandHistory } from './command';
-import { ChangeLedgerModal } from './ledger';
-import { FineTuneCustomizer, type StyleTuneUpdate } from './customizer';
-import { AIService } from './ai';
-import { AISettingsModal } from './ai-modal';
-import { synthesizeDesignPrompt } from './prompt';
-import type { StylePreset, StylePatch, SavedPromptedStyle, TypographyUpdate } from './types';
+import { OverlayManager } from './overlay'; import { HierarchyManager, formatElementLabel } from './hierarchy'; import { AuraHarvester } from './harvester'; import { AuraSuggester, VariationDock } from './suggester'; import { CommandHistory } from './command'; import { ChangeLedgerModal } from './ledger'; import { FineTuneCustomizer, type StyleTuneUpdate } from './customizer'; import { AIService } from './ai'; import { AISettingsModal } from './ai-modal'; import { clampToViewport } from './draggable'; import { createKeybindingHandlers } from './main-keybindings'; import { renderDockHelper } from './main-dock'; import { commitStyleChange, applyPresetHelper, revertElementHelper, peekPresetHelper, unpeekPresetHelper } from './main-presets'; import { applyBridgePayloadHelper, applyColorSwatchHelper, applyTypographyUpdateHelper, revertTypographyHelper, clearTypographyBaseline, handleAISuggestionsHelper, loadWorkspaceMutationsHelper } from './main-actions'; import type { StylePreset, StylePatch, SavedPromptedStyle } from './types';
 
 declare global {
-  interface Window {
-    __AURACSS_DEBUG__?: boolean;
-    __AURACSS_INSTANCE__?: AuraCSSApp;
-  }
+  interface Window { __AURACSS_DEBUG__?: boolean; __AURACSS_INSTANCE__?: AuraCSSApp; }
 }
 
 export class AuraCSSApp {
@@ -33,9 +20,9 @@ export class AuraCSSApp {
   private currentDockPresets = new WeakMap<HTMLElement, StylePreset[]>();
   private activePresetIdMap = new WeakMap<HTMLElement, string | null>();
   private savedPromptedStyles = new WeakMap<HTMLElement, SavedPromptedStyle[]>();
+  private bookmarkedPresets = new WeakMap<HTMLElement, Set<string>>();
 
-  private isActive = false;
-  private isComparing = false;
+  private isActive = false; private isTransitioning = false; private isComparing = false;
   private abortController: AbortController | null = null;
   private lockedElement: HTMLElement | null = null;
   private toggleBtn: HTMLButtonElement | null = null;
@@ -43,6 +30,7 @@ export class AuraCSSApp {
   private ledgerBtn: HTMLButtonElement | null = null;
   private exportDivider: HTMLDivElement | null = null;
   private minBadge: HTMLButtonElement | null = null;
+  private controlsStack: HTMLElement | null = null;
 
   public init(): void {
     try {
@@ -54,373 +42,221 @@ export class AuraCSSApp {
       this.ledgerBtn = ctrl.exportBtn;
       this.exportDivider = ctrl.exportDivider;
       this.minBadge = ctrl.minBadge;
+      this.controlsStack = ctrl.controlsStack;
+
       this.aiService.subscribeBridge((p) => {
-        const target = this.lockedElement || (p.selector ? (document.querySelector(p.selector) as HTMLElement | null) : null);
-        if (target && target instanceof HTMLElement) {
-          if (!this.lockedElement) {
-            this.lockElement(target);
-          }
-          const promptLabel = p.name || (p.prompt ? (p.prompt.length > 25 ? p.prompt.slice(0, 22) + '...' : p.prompt) : 'Agent Prompt Result');
-          const promptDesc = p.description || (p.prompt ? `Prompt: "${p.prompt}"` : 'Synthesized & streamed from Antigravity agent');
-          const style: SavedPromptedStyle = {
-            id: `prompted-${Date.now()}`,
-            name: promptLabel,
-            description: promptDesc,
-            cssText: p.cssText,
-            tailwindClasses: p.tailwindClasses || '',
-            timestamp: Date.now(),
-            contrastRating: 'AAA',
-            contrastRatio: '7.5:1',
-          };
-          this.recordSavedPromptedStyle(target, style);
-          this.applyPreset(target, style);
-        }
+        if (!this.isActive || (!this.lockedElement && !p.selector)) return;
+        applyBridgePayloadHelper(p, {
+          lockedElement: this.lockedElement,
+          lockElement: (el) => this.lockElement(el),
+          savedPromptedStyles: this.savedPromptedStyles,
+          presetContext: this.getPresetContext(),
+        });
       });
+      this.aiService.notifyActiveElement(null);
+      void loadWorkspaceMutationsHelper();
       this.log('AuraCSS initialized in standby mode');
+
+      let isAltPressed = false;
+      const handleGlobalKey = (e: KeyboardEvent) => {
+        if (e.key === 'Alt') { isAltPressed = true; e.preventDefault(); }
+        if (e.repeat) return;
+        const target = (e.composedPath ? e.composedPath()[0] : e.target) as HTMLElement | null;
+        if (target?.tagName?.toLowerCase() === 'input' || target?.tagName?.toLowerCase() === 'textarea' || target?.isContentEditable) return;
+        if ((e.altKey || isAltPressed) && (e.key.toLowerCase() === 'a' || e.code === 'KeyA')) {
+          e.preventDefault(); e.stopPropagation();
+          if (this.toggleBtn) this.toggleBtn.click(); else this.toggle();
+        }
+      };
+      const handleGlobalKeyUp = (e: KeyboardEvent) => {
+        if (e.key === 'Alt') { isAltPressed = false; e.preventDefault(); e.stopPropagation(); }
+      };
+      window.addEventListener('keydown', handleGlobalKey, { capture: true });
+      window.addEventListener('keyup', handleGlobalKeyUp, { capture: true });
+      this.globalKeyCleanup = () => { window.removeEventListener('keydown', handleGlobalKey, true); window.removeEventListener('keyup', handleGlobalKeyUp, true); };
     } catch (err) { this.error('Initialization failed', err); }
   }
 
   public toggle(): void { this.isActive ? this.deactivate() : this.activate(); }
 
   public activate(): void {
-    if (this.isActive) return;
-    this.isActive = true;
-    if (this.toggleBtn && this.toggleLabel) {
-      this.toggleBtn.classList.add('active');
-      this.toggleLabel.textContent = 'AuraCSS: ON';
-    }
-    this.minBadge?.classList.add('active');
-    if (this.ledgerBtn) this.ledgerBtn.style.display = 'inline-flex';
-    if (this.exportDivider) this.exportDivider.style.display = 'block';
+    if (this.isActive || this.isTransitioning) return;
+    this.isTransitioning = true;
+    try {
+      this.isActive = true;
+      if (this.toggleBtn && this.toggleLabel) {
+        this.toggleBtn.classList.add('active');
+        this.toggleLabel.textContent = 'AuraCSS: ON';
+      }
+      this.minBadge?.classList.add('active');
+      if (this.ledgerBtn) this.ledgerBtn.style.display = 'inline-flex';
+      if (this.exportDivider) this.exportDivider.style.display = 'block';
+      if (typeof window !== 'undefined' && typeof window.focus === 'function') { try { window.focus(); } catch {} }
+      if (this.controlsStack) {
+        clampToViewport(this.controlsStack);
+        if (typeof requestAnimationFrame !== 'undefined') {
+          requestAnimationFrame(() => { if (this.controlsStack) clampToViewport(this.controlsStack); });
+        }
+      }
 
-    this.abortController = new AbortController();
-    const opts: AddEventListenerOptions = { capture: true, signal: this.abortController.signal };
-    const pOpts = { ...opts, passive: true };
-    window.addEventListener('mouseover', this.handleMouseOver, opts);
-    window.addEventListener('click', this.handleClick, opts);
-    window.addEventListener('scroll', this.handleScrollOrResize, pOpts);
-    window.addEventListener('resize', this.handleScrollOrResize, pOpts);
-    window.addEventListener('keydown', this.handleKeyDown, opts);
-    window.addEventListener('keyup', this.handleKeyUp, opts);
-    this.log('AuraCSS activated');
+      this.abortController = new AbortController();
+      const sig = this.abortController.signal;
+      window.addEventListener('mouseover', this.handleMouseOver, { capture: true, signal: sig });
+      window.addEventListener('click', this.handleClick, { capture: true, signal: sig });
+      window.addEventListener('scroll', this.handleScrollOrResize, { capture: true, passive: true, signal: sig });
+      window.addEventListener('resize', this.handleScrollOrResize, { capture: true, passive: true, signal: sig });
+      window.addEventListener('keydown', (e) => { try { this.keybindings.handleKeyDown(e); } catch (err) { this.error('handleKeyDown', err); } }, { capture: true, signal: sig });
+      window.addEventListener('keyup', (e) => { try { this.keybindings.handleKeyUp(e); } catch (err) { this.error('handleKeyUp', err); } }, { capture: true, signal: sig });
+
+      const sel = typeof localStorage !== 'undefined' ? localStorage.getItem('auracss_active_selector') : null;
+      if (sel && !this.lockedElement) {
+        try {
+          const el = document.querySelector(sel);
+          if (el && el instanceof HTMLElement && el.isConnected) this.lockElement(el);
+        } catch {
+          try { localStorage.removeItem('auracss_active_selector'); } catch {}
+        }
+      }
+      this.log('AuraCSS activated');
+    } catch (err) {
+      this.error('Activation failed', err);
+      this.isActive = false;
+      this.abortController?.abort();
+      this.abortController = null;
+      try { localStorage.removeItem('auracss_active_selector'); } catch {}
+    } finally {
+      this.isTransitioning = false;
+    }
   }
 
   public deactivate(): void {
-    if (!this.isActive) return;
-    this.isActive = false;
-    this.abortController?.abort();
-    this.abortController = null;
-    this.unlockElement();
-    [this.overlay, this.hierarchy, this.variationDock].forEach((c) => c.clear());
-    [this.customizer, this.ledgerModal, this.aiModal].forEach((c) => c.hide());
+    if (!this.isActive || this.isTransitioning) return;
+    this.isTransitioning = true;
+    try {
+      this.isActive = false;
+      this.aiService.disconnectBridge();
+      this.abortController?.abort();
+      this.abortController = null;
+      this.unlockElement();
+      [this.overlay, this.hierarchy, this.variationDock].forEach(c => c.clear());
+      [this.customizer, this.ledgerModal, this.aiModal].forEach(c => c.hide());
 
-    if (this.toggleBtn && this.toggleLabel) {
-      this.toggleBtn.classList.remove('active');
-      this.toggleLabel.textContent = 'AuraCSS: OFF';
+      if (this.toggleBtn && this.toggleLabel) {
+        this.toggleBtn.classList.remove('active');
+        this.toggleLabel.textContent = 'AuraCSS: OFF';
+      }
+      if (this.minBadge) this.minBadge.classList.remove('active');
+      if (this.ledgerBtn) this.ledgerBtn.style.display = 'none';
+      if (this.exportDivider) this.exportDivider.style.display = 'none';
+      this.log('AuraCSS deactivated');
+    } catch (err) {
+      this.error('Deactivation failed', err);
+    } finally {
+      this.isTransitioning = false;
     }
-    this.minBadge?.classList.remove('active');
-    if (this.ledgerBtn) this.ledgerBtn.style.display = 'none';
-    if (this.exportDivider) this.exportDivider.style.display = 'none';
-    this.log('AuraCSS deactivated');
   }
 
-  private handleMouseOver = (e: MouseEvent): void => {
-    try {
-      if (this.lockedElement) return;
-      const target = this.overlay.resolveHostElement(e);
-      target ? this.overlay.updateHighlight(target, false) : this.overlay.clear();
-    } catch (err) { this.error('handleMouseOver', err); }
-  };
+  private handleMouseOver = (e: MouseEvent): void => { try { if (!this.lockedElement) { const t = this.overlay.resolveHostElement(e); t ? this.overlay.updateHighlight(t, false) : this.overlay.clear(); } } catch (err) { this.error('handleMouseOver', err); } };
+  private handleClick = (e: MouseEvent): void => { try { const t = this.overlay.resolveHostElement(e); if (!t) return; e.preventDefault(); e.stopPropagation(); if ((e.ctrlKey || e.metaKey) && this.lockedElement === t) { this.unlockElement(); return; } if (this.lockedElement !== t) this.lockElement(t); } catch (err) { this.error('handleClick', err); } };
+  private handleScrollOrResize = (): void => { try { if (this.lockedElement?.isConnected) this.overlay.updateHighlight(this.lockedElement, true); if (this.controlsStack) clampToViewport(this.controlsStack); } catch (err) { this.error('handleScrollOrResize', err); } };
 
-  private handleClick = (e: MouseEvent): void => {
-    try {
-      const target = this.overlay.resolveHostElement(e);
-      if (!target) return;
-      e.preventDefault();
-      e.stopPropagation();
-      this.lockedElement === target ? this.unlockElement() : this.lockElement(target);
-    } catch (err) { this.error('handleClick', err); }
-  };
-
-  private handleScrollOrResize = (): void => {
-    try {
-      if (this.lockedElement?.isConnected) this.overlay.updateHighlight(this.lockedElement, true);
-    } catch (err) { this.error('handleScrollOrResize', err); }
-  };
-
-  private handleKeyDown = (e: KeyboardEvent): void => {
-    try {
-      const path = e.composedPath ? e.composedPath() : [e.target];
-      const targetEl = path[0] as HTMLElement | null;
-      if (targetEl?.tagName?.toLowerCase() === 'input' || targetEl?.tagName?.toLowerCase() === 'textarea') return;
-
-      if (e.key === 'Escape') {
-        this.lockedElement ? this.unlockElement() : this.deactivate();
-        return;
-      }
-      if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'y')) {
-        e.preventDefault();
-        const cmd = (e.key.toLowerCase() === 'y' || e.shiftKey) ? this.commandHistory.redo() : this.commandHistory.undo();
-        if (cmd?.element?.isConnected) this.overlay.updateHighlight(cmd.element, true);
-        this.updateLedgerCount();
-        return;
-      }
-      if (e.code === 'Space' && this.lockedElement && !this.isComparing) {
-        e.preventDefault();
-        const p = this.stylePatches.get(this.lockedElement);
-        if (p) { this.isComparing = true; this.lockedElement.style.cssText = p.originalCssText; this.overlay.updateHighlight(this.lockedElement, true); }
-      }
-      if (this.lockedElement && e.altKey && e.key.toLowerCase() === 'r') {
-        e.preventDefault();
-        this.revertElement(this.lockedElement);
-        return;
-      }
-      if (this.lockedElement && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
-        e.preventDefault();
-        const next = e.key === 'ArrowUp' ? this.hierarchy.navigateUp(this.lockedElement) : this.hierarchy.navigateDown(this.lockedElement);
-        if (next) this.lockElement(next);
-      }
-    } catch (err) { this.error('handleKeyDown', err); }
-  };
-
-  private handleKeyUp = (e: KeyboardEvent): void => {
-    try {
-      if (e.code === 'Space' && this.isComparing && this.lockedElement) {
-        e.preventDefault();
-        this.isComparing = false;
-        const p = this.stylePatches.get(this.lockedElement);
-        if (p) { this.lockedElement.style.cssText = p.appliedCssText; this.overlay.updateHighlight(this.lockedElement, true); }
-      }
-    } catch (err) { this.error('handleKeyUp', err); }
-  };
+  private keybindings = createKeybindingHandlers({
+    getLockedElement: () => this.lockedElement,
+    getIsComparing: () => this.isComparing,
+    setIsComparing: (val) => { this.isComparing = val; },
+    unlockElement: () => this.unlockElement(),
+    deactivate: () => this.deactivate(),
+    commandHistory: this.commandHistory,
+    updateLedgerCount: () => this.updateLedgerCount(),
+    overlay: this.overlay,
+    stylePatches: this.stylePatches,
+    revertElement: (el) => this.revertElement(el),
+    hierarchy: this.hierarchy,
+    lockElement: (el) => this.lockElement(el),
+  });
+  private globalKeyCleanup: (() => void) | null = null;
 
   private lockElement(el: HTMLElement): void {
     this.lockedElement = el;
+    try { localStorage.setItem('auracss_active_selector', formatElementLabel(el)); } catch {}
     this.overlay.updateHighlight(el, true);
     this.hierarchy.render(el, (selected) => this.lockElement(selected));
     if (!this.currentDockPresets.has(el)) {
+      this.aiVariationCycleMap.set(el, 0);
       this.currentDockPresets.set(el, this.suggester.suggest(el, this.harvester.harvest()));
     }
     this.refreshDock(el, this.stylePatches.has(el));
+    const patch = this.stylePatches.get(el);
+    const lastPrompt = (this.savedPromptedStyles.get(el) || [])[0]?.name;
     this.aiService.notifyActiveElement({
       tag: el.tagName.toLowerCase(),
       selector: formatElementLabel(el),
       htmlSnippet: el.outerHTML.slice(0, 200),
       siteTokens: this.harvester.harvest(),
+      currentMutations: patch ? { appliedCssText: patch.appliedCssText, tailwindClasses: patch.tailwindClasses, lastPrompt } : undefined,
     });
     this.log('Locked:', el);
   }
 
   private unlockElement(): void {
     if (!this.lockedElement) return;
+    try { localStorage.removeItem('auracss_active_selector'); } catch {}
     this.lockedElement = null;
     this.isComparing = false;
-    this.overlay.clear();
-    this.hierarchy.clear();
-    this.variationDock.clear();
+    [this.overlay, this.hierarchy, this.variationDock].forEach((c) => c.clear());
     this.customizer.hide();
+    this.aiService.notifyActiveElement(null);
   }
 
   private revertElement(el: HTMLElement): void {
-    const patch = this.stylePatches.get(el);
-    if (!patch) return;
-    el.style.cssText = patch.originalCssText;
-    this.stylePatches.delete(el);
-    this.commandHistory.removeElement(el);
-    this.activePresetIdMap.set(el, null);
-    this.variationDock.setActivePresetId(null);
-    this.updateLedgerCount();
-    this.overlay.updateHighlight(el, true);
-    const presets = this.currentDockPresets.get(el) || this.suggester.suggest(el, this.harvester.harvest());
-    this.renderDock(el, presets, false, this.aiVariationCycleMap.get(el));
-    this.log('Reverted to original:', el);
+    clearTypographyBaseline(el);
+    revertElementHelper(this.getPresetContext(), el, () => {
+      const presets = this.currentDockPresets.get(el) || this.suggester.suggest(el, this.harvester.harvest());
+      this.renderDock(el, presets, false, this.aiVariationCycleMap.get(el));
+      this.log('Reverted to original:', el);
+    });
   }
 
-  private deselectElement(el: HTMLElement): void {
-    this.revertElement(el);
+  private getPresetContext = () => ({
+    stylePatches: this.stylePatches, activePresetIdMap: this.activePresetIdMap, commandHistory: this.commandHistory,
+    variationDock: this.variationDock, overlay: this.overlay, updateLedgerCount: () => this.updateLedgerCount(),
+    refreshDock: (el: HTMLElement, isModified: boolean) => this.refreshDock(el, isModified),
+  });
+
+  private renderDock(el: HTMLElement, presets: StylePreset[], isModified: boolean, setIndex?: number): void {
+    renderDockHelper({
+        variationDock: this.variationDock, harvester: this.harvester, savedPromptedStyles: this.savedPromptedStyles,
+        activePresetIdMap: this.activePresetIdMap, currentDockPresets: this.currentDockPresets, bookmarkedPresets: this.bookmarkedPresets,
+        onApplyPreset: (elem, p) => this.applyPreset(elem, p), onRevert: (elem) => this.revertElement(elem),
+        onApplyTypography: (elem, u) => applyTypographyUpdateHelper(elem, u, this.stylePatches.get(elem)?.tailwindClasses || '', (n, t, p) => this.commitStyleChange(elem, n, t, p)),
+        onRevertTypography: (elem) => revertTypographyHelper(elem, (n, t, p) => this.commitStyleChange(elem, n, t, p), () => this.revertElement(elem)),
+        onApplySwatch: (elem, hex) => applyColorSwatchHelper(elem, hex, this.stylePatches.get(elem)?.tailwindClasses || '', (n, t, p) => this.commitStyleChange(elem, n, t, p)),
+        onOpenAISettings: (elem) => this.aiModal.show({ tag: elem.tagName.toLowerCase(), selector: formatElementLabel(elem) }),
+        onRequestAISuggestions: (elem) => this.handleAISuggestions(elem), refreshDock: (elem, mod) => this.refreshDock(elem, mod),
+        onPeek: (elem, p) => peekPresetHelper(this.getPresetContext(), elem, p, this.isComparing),
+        onUnpeek: (elem) => unpeekPresetHelper(this.getPresetContext(), elem, this.isComparing),
+      }, el, presets, isModified, setIndex);
+  }
+
+  public applyPreset(el: HTMLElement, preset: StylePreset): void {
+    clearTypographyBaseline(el);
+    applyPresetHelper(this.getPresetContext(), el, preset);
   }
 
   private commitStyleChange(el: HTMLElement, newCss: string, tw: string, prevCss: string): void {
-    const original = this.stylePatches.get(el)?.originalCssText ?? prevCss;
-    this.stylePatches.set(el, { originalCssText: original, appliedCssText: newCss, tailwindClasses: tw });
-    this.commandHistory.execute({
-      element: el,
-      selectorPath: formatElementLabel(el),
-      previousCssText: prevCss,
-      appliedCssText: newCss,
-      tailwindClasses: tw,
-      timestamp: Date.now(),
-    });
-    this.updateLedgerCount();
-    this.overlay.updateHighlight(el, true);
-    this.refreshDock(el, true);
-  }
-
-  private applyPreset(el: HTMLElement, preset: StylePreset): void {
-    if (!el?.isConnected) return;
-    this.activePresetIdMap.set(el, preset.id);
-    this.variationDock.setActivePresetId(preset.id);
-    const current = this.stylePatches.get(el);
-    if (current && current.appliedCssText === preset.cssText) return;
-    const prevCss = el.style.cssText;
-    el.style.cssText = preset.cssText;
-    this.commitStyleChange(el, preset.cssText, preset.tailwindClasses, prevCss);
-  }
-
-  private applyIncrementalPreset(el: HTMLElement, preset: StylePreset): void {
-    if (!el?.isConnected) return;
-    const prevCss = el.style.cssText;
-    const temp = document.createElement('div');
-    temp.style.cssText = preset.cssText;
-    for (let i = 0; i < temp.style.length; i++) {
-      const prop = temp.style[i]!;
-      const val = temp.style.getPropertyValue(prop);
-      const prio = temp.style.getPropertyPriority(prop);
-      el.style.setProperty(prop, val, prio);
-    }
-    const finalCss = el.style.cssText;
-    const p = this.stylePatches.get(el);
-    const finalTw = p ? `${p.tailwindClasses} ${preset.tailwindClasses}`.trim() : preset.tailwindClasses;
-    this.commitStyleChange(el, finalCss, finalTw, prevCss);
-  }
-
-  private recordSavedPromptedStyle(el: HTMLElement, style: SavedPromptedStyle): void {
-    const list = this.savedPromptedStyles.get(el) || [];
-    const filtered = list.filter((s) => s.cssText !== style.cssText);
-    filtered.unshift(style);
-    this.savedPromptedStyles.set(el, filtered);
-  }
-
-  private async handlePrompt(el: HTMLElement, prompt: string): Promise<void> {
-    if (!el?.isConnected) return;
-    const preset = await synthesizeDesignPrompt(prompt, el, this.harvester.harvest(), this.aiService);
-    const style: SavedPromptedStyle = {
-      id: `prompted-${Date.now()}`,
-      name: preset.name || 'Prompted Style',
-      description: preset.description || `Prompt: "${prompt}"`,
-      cssText: preset.cssText,
-      tailwindClasses: preset.tailwindClasses,
-      timestamp: Date.now(),
-      contrastRating: preset.contrastRating,
-      contrastRatio: preset.contrastRatio,
-    };
-    this.recordSavedPromptedStyle(el, style);
-    this.applyIncrementalPreset(el, preset);
-  }
-
-  private applyColorSwatch(el: HTMLElement, hex: string): void {
-    if (!el?.isConnected) return;
-    const parsed = parseColor(hex);
-    const lum = parsed ? calculateLuminance(parsed) : 0;
-    const isLight = lum > 0.4;
-    const textColor = isLight ? '#0f172a' : '#ffffff';
-    const prevCss = el.style.cssText;
-    el.style.backgroundColor = hex;
-    el.style.color = textColor;
-    const finalCss = el.style.cssText;
-    const prevTw = this.stylePatches.get(el)?.tailwindClasses || '';
-    const filteredTw = prevTw
-      .split(/\s+/)
-      .filter((cls) => cls && !cls.startsWith('bg-') && !cls.startsWith('text-'))
-      .join(' ')
-      .trim();
-    const tw = filteredTw
-      ? `${filteredTw} bg-[${hex}] text-[${textColor}]`
-      : `bg-[${hex}] text-[${textColor}]`;
-    this.commitStyleChange(el, finalCss, tw, prevCss);
-  }
-
-  private applyTypographyUpdate(el: HTMLElement, update: TypographyUpdate): void {
-    if (!el?.isConnected) return;
-    const prevCss = el.style.cssText;
-    el.style.setProperty(update.property, update.value);
-    const finalCss = el.style.cssText;
-
-    const prevTw = this.stylePatches.get(el)?.tailwindClasses || '';
-    let filteredTw = prevTw;
-    if (update.property === 'color') {
-      filteredTw = prevTw.split(/\s+/).filter((c) => c && !c.startsWith('text-')).join(' ');
-    } else if (update.property === 'font-size') {
-      filteredTw = prevTw.split(/\s+/).filter((c) => c && !c.startsWith('text-xs') && !c.startsWith('text-sm') && !c.startsWith('text-base') && !c.startsWith('text-lg') && !c.startsWith('text-xl') && !c.startsWith('text-2xl')).join(' ');
-    } else if (update.property === 'font-family') {
-      filteredTw = prevTw.split(/\s+/).filter((c) => c && !c.startsWith('font-sans') && !c.startsWith('font-mono') && !c.startsWith('font-serif') && !c.startsWith('font-display')).join(' ');
-    } else if (update.property === 'font-weight') {
-      filteredTw = prevTw.split(/\s+/).filter((c) => c && !c.startsWith('font-normal') && !c.startsWith('font-medium') && !c.startsWith('font-semibold') && !c.startsWith('font-bold')).join(' ');
-    }
-
-    const tw = filteredTw ? `${filteredTw.trim()} ${update.tailwind}`.trim() : update.tailwind;
-    this.commitStyleChange(el, finalCss, tw, prevCss);
-  }
-
-  private deleteSavedPromptedStyle(el: HTMLElement, id: string): void {
-    const list = this.savedPromptedStyles.get(el) || [];
-    const filtered = list.filter((s) => s.id !== id);
-    this.savedPromptedStyles.set(el, filtered);
-    this.refreshDock(el, this.stylePatches.has(el));
-  }
-
-  private clearSavedPromptedStyles(el: HTMLElement): void {
-    this.savedPromptedStyles.set(el, []);
-    this.refreshDock(el, this.stylePatches.has(el));
-  }
-
-  private renderDock(el: HTMLElement, presets: StylePreset[], isModified: boolean, setIndex?: number): void {
-    this.currentDockPresets.set(el, presets);
-    const saved = this.savedPromptedStyles.get(el) || [];
-    const tokens = this.harvester.harvest();
-    this.variationDock.render(
-      presets,
-      (p) => this.applyPreset(el, p),
-      () => this.revertElement(el),
-      isModified,
-      (prompt) => this.handlePrompt(el, prompt),
-      () => this.variationDock.togglePalettePopover(
-        (u) => this.applyTypographyUpdate(el, u)
-      ),
-      () => this.aiModal.show({
-        tag: el.tagName.toLowerCase(),
-        selector: formatElementLabel(el),
-      }),
-      () => this.handleAISuggestions(el),
-      setIndex,
-      () => this.deselectElement(el),
-      saved,
-      (s) => this.applyPreset(el, s),
-      tokens,
-      (theme) => this.applyPreset(el, theme),
-      (hex) => this.applyColorSwatch(el, hex),
-      (u) => this.applyTypographyUpdate(el, u),
-      (style) => this.deleteSavedPromptedStyle(el, style.id),
-      () => this.clearSavedPromptedStyles(el)
-    );
-    const activeId = this.activePresetIdMap.get(el);
-    if (activeId) {
-      this.variationDock.setActivePresetId(activeId);
-    }
+    commitStyleChange(this.getPresetContext(), el, newCss, tw, prevCss);
   }
 
   private async handleAISuggestions(el: HTMLElement): Promise<void> {
-    if (!el?.isConnected) return;
-    if (!this.aiService.isConfigured()) {
-      this.aiModal.show();
-      return;
-    }
-    const currentSet = this.aiVariationCycleMap.get(el) ?? -1;
-    const nextSet = (currentSet + 1) % 3;
-    this.aiVariationCycleMap.set(el, nextSet);
-    try {
-      const presets = await this.aiService.generateAISuggestions(
-        {
-          tag: el.tagName.toLowerCase(),
-          htmlSnippet: el.outerHTML.slice(0, 200),
-          computedStyles: { color: el.style.color, backgroundColor: el.style.backgroundColor },
-          siteTokens: this.harvester.harvest(),
-        },
-        undefined,
-        nextSet
-      );
-      this.renderDock(el, presets, this.stylePatches.has(el), nextSet);
-    } catch { this.refreshDock(el, this.stylePatches.has(el)); }
+    await handleAISuggestionsHelper(el, {
+      aiService: this.aiService,
+      aiModal: this.aiModal,
+      variationCycleMap: this.aiVariationCycleMap,
+      harvester: this.harvester,
+      isModified: this.stylePatches.has(el),
+      renderDock: (e, p, m, s) => this.renderDock(e, p, m, s),
+      refreshDock: (e, m) => this.refreshDock(e, m),
+    });
   }
 
   public handleTune(el: HTMLElement, update: StyleTuneUpdate): void {
@@ -428,7 +264,7 @@ export class AuraCSSApp {
     const prevCss = el.style.cssText;
     el.style.setProperty(update.property, update.value);
     const p = this.stylePatches.get(el);
-    this.commitStyleChange(el, el.style.cssText, p ? `${p.tailwindClasses} ${update.tailwind}` : update.tailwind, prevCss);
+    commitStyleChange(this.getPresetContext(), el, el.style.cssText, p ? `${p.tailwindClasses} ${update.tailwind}` : update.tailwind, prevCss);
   }
 
   private refreshDock(el: HTMLElement, isModified: boolean): void {
@@ -437,19 +273,18 @@ export class AuraCSSApp {
   }
 
   private updateLedgerCount(): void {
-    if (this.ledgerBtn) this.ledgerBtn.textContent = `Export (${this.commandHistory.getUniqueElementCount()})`;
+    if (this.ledgerBtn) {
+      this.ledgerBtn.textContent = `Export (${this.commandHistory.getUniqueElementCount()})`;
+      if (this.controlsStack) clampToViewport(this.controlsStack);
+    }
   }
 
-  private log(message: string, ...details: unknown[]): void {
-    if (window.__AURACSS_DEBUG__ === true) console.log(`[AuraCSS] ${message}`, ...details);
-  }
-
-  private error(message: string, ...details: unknown[]): void {
-    if (window.__AURACSS_DEBUG__ === true) console.error(`[AuraCSS Error] ${message}`, ...details);
-  }
+  private log(msg: string, ...d: unknown[]): void { if (window.__AURACSS_DEBUG__ === true) console.log(`[AuraCSS] ${msg}`, ...d); }
+  private error(msg: string, ...d: unknown[]): void { if (window.__AURACSS_DEBUG__ === true) console.error(`[AuraCSS Error] ${msg}`, ...d); }
 
   public destroy(): void {
     this.deactivate();
+    this.globalKeyCleanup?.();
     [this.customizer, this.ledgerModal, this.aiModal, this.variationDock, this.hierarchy, this.overlay].forEach((c) => c.destroy());
     this.commandHistory.clear();
     window.__AURACSS_INSTANCE__ = undefined;
@@ -460,7 +295,5 @@ const isTestEnv = typeof process !== 'undefined' && Boolean(process.env?.VITEST)
 if (!isTestEnv && typeof window !== 'undefined' && typeof document !== 'undefined') {
   const app = new AuraCSSApp();
   window.__AURACSS_INSTANCE__ = app;
-  document.readyState === 'loading'
-    ? document.addEventListener('DOMContentLoaded', () => app.init(), { once: true })
-    : app.init();
+  document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', () => app.init(), { once: true }) : app.init();
 }

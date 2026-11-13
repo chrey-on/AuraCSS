@@ -1,67 +1,6 @@
 import type { OverlayBoxMetrics } from './types';
+import { OVERLAY_STYLES } from './overlay-styles';
 import { getSavedPosition, savePosition, clampToViewport, makeDraggable } from './draggable';
-
-const OVERLAY_STYLES = `
-:host { all: initial; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2147483645; }
-*, *::before, *::after { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-.auracss-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; overflow: visible; z-index: 2147483645; }
-.auracss-ring {
-  position: absolute; pointer-events: none; border-radius: 4px; border: 2px solid #38bdf8;
-  background: rgba(56, 189, 248, 0.08); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 0 16px rgba(56, 189, 248, 0.35);
-  transition: transform 0.06s ease-out, width 0.06s ease-out, height 0.06s ease-out, border-color 0.15s ease;
-  will-change: transform, width, height; display: none;
-}
-.auracss-ring.locked { border-color: #a855f7; background: rgba(168, 85, 247, 0.1); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 0 20px rgba(168, 85, 247, 0.45); }
-.auracss-pill {
-  position: absolute; top: -26px; left: -2px; background: #0f172a; color: #f8fafc;
-  font-size: 11px; font-weight: 600; line-height: 1; padding: 4px 8px; border-radius: 4px;
-  letter-spacing: 0.02em; white-space: nowrap; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; gap: 4px; pointer-events: none;
-}
-.auracss-pill.flipped { top: auto; bottom: -26px; }
-.auracss-controls-stack { position: fixed; top: 16px; right: 20px; display: inline-flex; align-items: center; z-index: 2147483647; pointer-events: auto; user-select: none; }
-.auracss-controls-stack.dragging { transition: none !important; user-select: none !important; }
-.auracss-controls-row {
-  display: inline-flex; align-items: center; height: 32px;
-  background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 9999px; padding: 2px 4px 2px 6px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.2);
-  gap: 2px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.auracss-controls-row:hover { border-color: rgba(56, 189, 248, 0.4); box-shadow: 0 10px 36px rgba(0, 0, 0, 0.6), 0 0 14px rgba(56, 189, 248, 0.2); }
-.auracss-controls-drag-handle { display: inline-flex; align-items: center; justify-content: center; color: #64748b; font-size: 11px; cursor: grab; padding: 0 4px 0 2px; touch-action: none; user-select: none; transition: color 0.15s ease; }
-.auracss-controls-drag-handle:hover, .auracss-controls-drag-handle.dragging { color: #38bdf8; cursor: grabbing !important; }
-.auracss-controls-divider { width: 1px; height: 14px; background: rgba(255, 255, 255, 0.15); flex-shrink: 0; }
-.auracss-toggle-btn {
-  height: 26px; padding: 0 10px; border-radius: 9999px; border: none; background: transparent; color: #f8fafc;
-  font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
-  transition: all 0.15s ease; white-space: nowrap; outline: none; box-shadow: none;
-}
-.auracss-toggle-btn:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
-.auracss-toggle-btn.active { color: #38bdf8; }
-.auracss-export-btn { color: #38bdf8; font-weight: 700; }
-.auracss-export-btn:hover { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; }
-.auracss-toggle-dot { width: 7px; height: 7px; border-radius: 50%; background: #64748b; transition: all 0.2s ease; }
-.auracss-toggle-btn.active .auracss-toggle-dot { background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
-.auracss-min-btn {
-  width: 22px; height: 22px; border-radius: 50%; border: none; background: transparent; color: #94a3b8;
-  font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 0.15s ease; outline: none; margin-right: 2px;
-}
-.auracss-min-btn:hover { background: rgba(255, 255, 255, 0.12); color: #f8fafc; }
-.auracss-min-badge {
-  display: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(56, 189, 248, 0.4);
-  background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  color: #38bdf8; font-size: 13px; font-weight: 700; align-items: center; justify-content: center; cursor: grab;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(56, 189, 248, 0.3);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; outline: none; touch-action: none; user-select: none;
-}
-.auracss-min-badge:hover { transform: scale(1.1); box-shadow: 0 0 18px rgba(56, 189, 248, 0.6); }
-.auracss-min-badge.active { color: #38bdf8; border-color: #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.45); }
-.auracss-min-badge.dragging { cursor: grabbing !important; transform: scale(1.12); box-shadow: 0 0 22px rgba(56, 189, 248, 0.8); }
-.auracss-controls-stack.minimized .auracss-controls-row { display: none !important; }
-.auracss-controls-stack.minimized .auracss-min-badge { display: flex !important; }
-`;
 
 function buildSelectorPill(el: HTMLElement): string {
   const tag = el.tagName.toLowerCase();
@@ -92,7 +31,8 @@ export class OverlayManager {
 
     const host = document.createElement('div');
     host.id = 'auracss-root';
-    host.style.cssText = 'all: initial !important; position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; z-index: 2147483647 !important; pointer-events: none !important;';
+    host.style.cssText =
+      'all: initial !important; position: fixed !important; inset: 0 !important; width: 100% !important; height: 100% !important; z-index: 2147483647 !important; pointer-events: none !important;';
     const shadow = host.attachShadow({ mode: 'open' });
 
     const styleEl = document.createElement('style');
@@ -114,9 +54,13 @@ export class OverlayManager {
       document.body.appendChild(host);
     } else {
       document.documentElement.appendChild(host);
-      window.addEventListener('DOMContentLoaded', () => {
-        if (document.body && host.parentElement !== document.body) document.body.appendChild(host);
-      }, { once: true });
+      window.addEventListener(
+        'DOMContentLoaded',
+        () => {
+          if (document.body && host.parentElement !== document.body) document.body.appendChild(host);
+        },
+        { once: true }
+      );
     }
 
     this.host = host;
@@ -130,6 +74,14 @@ export class OverlayManager {
   public updateHighlight(target: HTMLElement | null, locked = false): void {
     this.activeTarget = target;
     this.isLocked = locked;
+    if (locked) {
+      if (this.rafId !== null) {
+        cancelAnimationFrame(this.rafId);
+        this.rafId = null;
+      }
+      this.render();
+      return;
+    }
     if (this.rafId !== null) cancelAnimationFrame(this.rafId);
     this.rafId = requestAnimationFrame(() => {
       this.rafId = null;
@@ -186,15 +138,25 @@ export class OverlayManager {
     this.isLocked = false;
   }
 
-  public getShadowRoot(): ShadowRoot | null { return this.shadow; }
-  public getContainer(): HTMLDivElement | null { return this.container; }
+  public getShadowRoot(): ShadowRoot | null {
+    return this.shadow;
+  }
+
+  public getContainer(): HTMLDivElement | null {
+    return this.container;
+  }
 
   public resolveHostElement(e: Event): HTMLElement | null {
     if (!this.host) return null;
     const path = e.composedPath();
     if (path.includes(this.host)) return null;
     for (const item of path) {
-      if (item instanceof HTMLElement && item !== document.body && item !== document.documentElement && item.isConnected) {
+      if (
+        item instanceof HTMLElement &&
+        item !== document.body &&
+        item !== document.documentElement &&
+        item.isConnected
+      ) {
         return item;
       }
     }
@@ -215,7 +177,7 @@ export class OverlayManager {
 
     const badge = document.createElement('button');
     badge.className = 'auracss-min-badge';
-    badge.title = 'Click to expand, drag to reposition';
+    badge.title = 'AuraCSS (Alt+A to toggle)';
     badge.type = 'button';
     badge.innerHTML = '✦';
 
@@ -224,20 +186,18 @@ export class OverlayManager {
 
     const dragHandle = document.createElement('span');
     dragHandle.className = 'auracss-controls-drag-handle';
-    dragHandle.title = 'Drag to reposition';
+    dragHandle.title = 'Click to minimize to right, drag to move';
     dragHandle.textContent = '⋮⋮';
-    row.appendChild(dragHandle);
 
     const btn = document.createElement('button');
     btn.className = 'auracss-toggle-btn';
+    btn.title = 'Toggle AuraCSS ON/OFF (Alt+A)';
     btn.setAttribute('aria-label', 'Toggle AuraCSS');
     const dot = document.createElement('span');
     dot.className = 'auracss-toggle-dot';
     const label = document.createElement('span');
     label.textContent = 'AuraCSS: OFF';
     btn.append(dot, label);
-    btn.onclick = (e) => { e.stopPropagation(); onToggle(); };
-    row.appendChild(btn);
 
     const exportDivider = document.createElement('div');
     exportDivider.className = 'auracss-controls-divider auracss-export-divider';
@@ -247,7 +207,6 @@ export class OverlayManager {
     exportBtn.className = 'auracss-toggle-btn auracss-export-btn';
     exportBtn.style.display = 'none';
     exportBtn.textContent = 'Export (0)';
-    exportBtn.onclick = (e) => { e.stopPropagation(); onExport(); };
 
     const minDivider = document.createElement('div');
     minDivider.className = 'auracss-controls-divider';
@@ -257,23 +216,49 @@ export class OverlayManager {
     minBtn.title = 'Minimize controls';
     minBtn.type = 'button';
     minBtn.innerHTML = '–';
-    minBtn.onclick = (e) => {
-      e.stopPropagation();
+
+    row.append(dragHandle, btn, exportDivider, exportBtn, minDivider, minBtn);
+
+    const badgeDrag = makeDraggable(stack, badge, { onDragEnd: () => clampToViewport(stack) });
+    const rowDrag = makeDraggable(stack, dragHandle, { onDragEnd: () => clampToViewport(stack) });
+    this.cleanups.push(badgeDrag.destroy, rowDrag.destroy);
+
+    const minimizeStack = () => {
+      const winW = typeof window !== 'undefined'
+        ? (document.documentElement?.clientWidth || window.innerWidth || 1024)
+        : 1024;
       const minRect = minBtn.getBoundingClientRect();
       const stackRect = stack.getBoundingClientRect();
       const anchorRight = minRect.width > 0 ? minRect.right : stackRect.right;
       const anchorTop = minRect.height > 0 ? minRect.top + (minRect.height - 32) / 2 : stackRect.top;
+      const rightX = Math.max(Math.round(anchorRight - 32), Math.round(winW - 32 - 16));
       stack.classList.add('minimized');
-      stack.style.setProperty('left', `${Math.round(anchorRight - 32)}px`, 'important');
+      stack.style.setProperty('left', `${rightX}px`, 'important');
       stack.style.setProperty('top', `${Math.round(anchorTop)}px`, 'important');
       stack.style.setProperty('right', 'auto', 'important');
       savePosition(clampToViewport(stack));
     };
-    row.append(exportDivider, exportBtn, minDivider, minBtn);
 
-    const badgeDrag = makeDraggable(stack, badge, { onDragEnd: () => clampToViewport(stack) });
-    const handleDrag = makeDraggable(stack, dragHandle, { onDragEnd: () => clampToViewport(stack) });
-    this.cleanups.push(badgeDrag.destroy, handleDrag.destroy);
+    minBtn.onclick = (e) => {
+      e.stopPropagation();
+      minimizeStack();
+    };
+
+    dragHandle.onclick = (e) => {
+      e.stopPropagation();
+      if (rowDrag.wasJustDragged()) return;
+      minimizeStack();
+    };
+
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      onToggle();
+    };
+
+    exportBtn.onclick = (e) => {
+      e.stopPropagation();
+      onExport();
+    };
 
     badge.onclick = (e) => {
       e.stopPropagation();
@@ -291,8 +276,24 @@ export class OverlayManager {
     window.addEventListener('resize', handleResize, { passive: true });
     this.cleanups.push(() => window.removeEventListener('resize', handleResize));
 
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => clampToViewport(stack));
+      ro.observe(stack);
+      this.cleanups.push(() => ro.disconnect());
+    }
+
     stack.append(badge, row);
     this.shadow.appendChild(stack);
-    return { toggleBtn: btn, toggleLabel: label, exportBtn, exportDivider, minBadge: badge, controlsStack: stack };
+    if (savedPos) clampToViewport(stack);
+
+    return {
+      toggleBtn: btn,
+      toggleLabel: label,
+      exportBtn,
+      exportDivider,
+      minBadge: badge,
+      minBtn,
+      controlsStack: stack,
+    };
   }
 }

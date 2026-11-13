@@ -132,12 +132,34 @@ describe('AuraCSS Bridge & MCP Server', () => {
     expect(json.tailwindClasses).toContain('active:scale-95');
   });
 
-  it('maintains active element state helper functions', () => {
+  it('maintains active element state helper functions and rejects mutations when null', async () => {
+    setActiveElement(null);
+    expect(getActiveElement()).toBeNull();
+
+    // Verify rejection when activeElement is null
+    const res = await fetch(`http://127.0.0.1:${testPort}/api/patch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cssText: 'color: red;' }),
+    });
+    expect(res.status).toBe(400);
+    const json = (await res.json()) as { success: boolean; reminder: string };
+    expect(json.success).toBe(false);
+    expect(json.reminder).toContain('AuraCSS is turned OFF or no element is currently selected');
+
+    // Set element and verify success
     setActiveElement({
       tag: 'div',
       htmlSnippet: '<div>Hero</div>',
       updatedAt: Date.now(),
     });
     expect(getActiveElement()?.tag).toBe('div');
+
+    const res2 = await fetch(`http://127.0.0.1:${testPort}/api/patch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cssText: 'color: red;' }),
+    });
+    expect(res2.status).toBe(200);
   });
 });

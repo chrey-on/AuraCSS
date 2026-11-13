@@ -14,7 +14,9 @@ const AI_MODAL_STYLES = `
   border: 1px solid rgba(56, 189, 248, 0.25);
 }
 .auracss-ai-bridge-header { display: flex; align-items: center; justify-content: space-between; }
-.auracss-ai-bridge-badge { font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3); display: inline-flex; align-items: center; gap: 4px; }
+.auracss-ai-bridge-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; }
+.auracss-ai-bridge-badge.connected { color: #38bdf8; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); }
+.auracss-ai-bridge-badge.offline { color: #f87171; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); }
 .auracss-ai-bridge-port { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #c084fc; background: rgba(168, 85, 247, 0.15); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(168, 85, 247, 0.3); }
 .auracss-ai-bridge-title { font-size: 13px; font-weight: 700; color: #f8fafc; }
 .auracss-ai-bridge-desc { font-size: 12px; line-height: 1.45; color: #94a3b8; }
@@ -48,6 +50,7 @@ export interface ActiveElementInfo {
 export class AISettingsModal {
   private backdropEl: HTMLDivElement | null = null;
   private statusEl: HTMLDivElement | null = null;
+  private badgeEl: HTMLSpanElement | null = null;
   private targetValEl: HTMLSpanElement | null = null;
   private aiService: AIService;
 
@@ -64,7 +67,9 @@ export class AISettingsModal {
 
     const backdrop = document.createElement('div');
     backdrop.className = 'auracss-ai-modal-backdrop';
-    backdrop.onclick = (e) => { if (e.target === backdrop) this.hide(); };
+    backdrop.onclick = (e) => {
+      if (e.target === backdrop) this.hide();
+    };
 
     const modal = document.createElement('div');
     modal.className = 'auracss-ai-modal';
@@ -86,16 +91,31 @@ export class AISettingsModal {
     // Bridge Status Info Card (Zero-Key)
     const bridgeCard = document.createElement('div');
     bridgeCard.className = 'auracss-ai-bridge-card';
-    bridgeCard.innerHTML = `
-      <div class="auracss-ai-bridge-header">
-        <span class="auracss-ai-bridge-badge">⚡ Agent Bridge Active</span>
-        <span class="auracss-ai-bridge-port">localhost:4999</span>
-      </div>
-      <div class="auracss-ai-bridge-title">Zero-Key Antigravity Connection</div>
-      <div class="auracss-ai-bridge-desc">
-        Prompts and design variations are intelligently synthesized via your active Antigravity session. No external API keys or rate limits required.
-      </div>
-    `;
+
+    const bridgeHeader = document.createElement('div');
+    bridgeHeader.className = 'auracss-ai-bridge-header';
+
+    const badge = document.createElement('span');
+    badge.className = 'auracss-ai-bridge-badge connected';
+    badge.innerHTML = '⚡ Agent Bridge Active';
+    this.badgeEl = badge;
+
+    const portSpan = document.createElement('span');
+    portSpan.className = 'auracss-ai-bridge-port';
+    portSpan.textContent = 'localhost:4999';
+
+    bridgeHeader.append(badge, portSpan);
+
+    const bridgeTitle = document.createElement('div');
+    bridgeTitle.className = 'auracss-ai-bridge-title';
+    bridgeTitle.textContent = 'Zero-Key Antigravity Connection';
+
+    const bridgeDesc = document.createElement('div');
+    bridgeDesc.className = 'auracss-ai-bridge-desc';
+    bridgeDesc.textContent =
+      'Prompts and design variations are intelligently synthesized via your active Antigravity session. No external API keys or rate limits required.';
+
+    bridgeCard.append(bridgeHeader, bridgeTitle, bridgeDesc);
     modal.appendChild(bridgeCard);
 
     // Diagnostics Section
@@ -139,10 +159,7 @@ export class AISettingsModal {
       const res = await this.aiService.testConnection();
       pingBtn.disabled = false;
       pingBtn.textContent = 'Ping MCP Bridge';
-      if (this.statusEl) {
-        this.statusEl.className = `auracss-ai-status ${res.success ? 'connected' : 'error'}`;
-        this.statusEl.textContent = res.success ? `🟢 ${res.message}` : `🔴 ${res.message}`;
-      }
+      this.updateStatus(res);
     };
 
     const closeActionBtn = document.createElement('button');
@@ -167,11 +184,20 @@ export class AISettingsModal {
     this.backdropEl?.classList.add('visible');
   }
 
+  private updateStatus(res: { success: boolean; message: string }): void {
+    if (this.badgeEl) {
+      this.badgeEl.className = `auracss-ai-bridge-badge ${res.success ? 'connected' : 'offline'}`;
+      this.badgeEl.innerHTML = res.success ? '⚡ Agent Bridge Active' : '⚠️ Bridge Offline';
+    }
+    if (this.statusEl) {
+      this.statusEl.className = `auracss-ai-status ${res.success ? 'connected' : 'error'}`;
+      this.statusEl.textContent = res.success ? `🟢 ${res.message}` : `🔴 ${res.message}`;
+    }
+  }
+
   private async pingStatus(): Promise<void> {
-    if (!this.statusEl) return;
     const res = await this.aiService.testConnection();
-    this.statusEl.className = `auracss-ai-status ${res.success ? 'connected' : 'error'}`;
-    this.statusEl.textContent = res.success ? `🟢 ${res.message}` : `🔴 ${res.message}`;
+    this.updateStatus(res);
   }
 
   public hide(): void {
@@ -184,5 +210,8 @@ export class AISettingsModal {
       this.backdropEl.parentNode.removeChild(this.backdropEl);
     }
     this.backdropEl = null;
+    this.statusEl = null;
+    this.badgeEl = null;
+    this.targetValEl = null;
   }
 }

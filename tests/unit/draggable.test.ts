@@ -113,7 +113,8 @@ describe('Draggable Subsystem (Pointer Events & Clamping)', () => {
       button: 0,
     });
     trigger.dispatchEvent(downEvent);
-    expect(trigger.setPointerCapture).toHaveBeenCalled();
+    // Pointer capture is deferred until movement threshold to avoid swallowing child clicks
+    expect(trigger.setPointerCapture).not.toHaveBeenCalled();
 
     // 3. Pointer move below 4px threshold -> should not drag yet
     const microMove = new PointerEvent('pointermove', {
@@ -124,13 +125,14 @@ describe('Draggable Subsystem (Pointer Events & Clamping)', () => {
     window.dispatchEvent(microMove);
     expect(target.classList.contains('dragging')).toBe(false);
 
-    // 4. Pointer move beyond threshold -> should drag
+    // 4. Pointer move beyond threshold -> should drag and capture pointer
     const moveEvent = new PointerEvent('pointermove', {
       clientX: 80,
       clientY: 90,
       isPrimary: true,
     });
     window.dispatchEvent(moveEvent);
+    expect(trigger.setPointerCapture).toHaveBeenCalled();
     expect(target.classList.contains('dragging')).toBe(true);
     expect(trigger.classList.contains('dragging')).toBe(true);
     expect(target.style.left).toBe('80px');

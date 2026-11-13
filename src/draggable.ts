@@ -10,7 +10,7 @@ export interface DraggableOptions {
 }
 
 const DEFAULT_STORAGE_KEY = 'auracss_controls_pos';
-const DEFAULT_MARGIN = 8;
+const DEFAULT_MARGIN = 12;
 
 export function getSavedPosition(key = DEFAULT_STORAGE_KEY): DragPosition | null {
   try {
@@ -36,8 +36,12 @@ export function clampToViewport(target: HTMLElement, margin = DEFAULT_MARGIN): D
   const rect = target.getBoundingClientRect();
   const width = rect.width || 32;
   const height = rect.height || 32;
-  const winW = typeof window !== 'undefined' ? window.innerWidth : 1024;
-  const winH = typeof window !== 'undefined' ? window.innerHeight : 768;
+  const winW = typeof window !== 'undefined'
+    ? (document.documentElement?.clientWidth || window.innerWidth || 1024)
+    : 1024;
+  const winH = typeof window !== 'undefined'
+    ? (document.documentElement?.clientHeight || window.innerHeight || 768)
+    : 768;
 
   const minX = margin;
   const minY = margin;
@@ -88,16 +92,23 @@ export function makeDraggable(
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
 
-    if (!hasMoved && Math.hypot(dx, dy) >= 4) {
+    if (!hasMoved && Math.hypot(dx, dy) >= 8) {
       hasMoved = true;
+      try {
+        trigger.setPointerCapture(e.pointerId);
+      } catch {}
       target.classList.add('dragging');
       trigger.classList.add('dragging');
     }
 
     if (hasMoved) {
       const rect = target.getBoundingClientRect();
-      const winW = window.innerWidth;
-      const winH = window.innerHeight;
+      const winW = typeof window !== 'undefined'
+        ? (document.documentElement?.clientWidth || window.innerWidth || 1024)
+        : 1024;
+      const winH = typeof window !== 'undefined'
+        ? (document.documentElement?.clientHeight || window.innerHeight || 768)
+        : 768;
       const minX = margin;
       const minY = margin;
       const maxX = Math.max(minX, winW - rect.width - margin);
@@ -150,10 +161,6 @@ export function makeDraggable(
     const rect = target.getBoundingClientRect();
     initialLeft = rect.left;
     initialTop = rect.top;
-
-    try {
-      trigger.setPointerCapture(e.pointerId);
-    } catch {}
 
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);

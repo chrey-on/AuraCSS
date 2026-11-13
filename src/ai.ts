@@ -14,6 +14,8 @@ export interface AISynthesizeRequest {
   prompt: string;
   tag: string;
   htmlSnippet: string;
+  innerText?: string;
+  parentLayout?: string;
   computedStyles: Record<string, string>;
   siteTokens: ExtractedTokens;
   setIndex?: number;
@@ -36,6 +38,7 @@ export class AIService {
   private config: AIConfig = { provider: 'bridge', bridgeUrl: 'http://127.0.0.1:4999', apiKey: '', model: 'agent-auto' };
   private status: AIConnectionStatus = 'untested';
   private lastError = '';
+  private eventSource: EventSource | null = null;
 
   constructor() {
     this.loadConfig();
@@ -75,23 +78,39 @@ export class AIService {
     const timer = setTimeout(() => controller.abort(), 4000);
     const start = Date.now();
 
+    const candidates = [
+      this.config.bridgeUrl || 'http://127.0.0.1:4999',
+      'http://localhost:4999',
+    ];
+
     try {
-      const url = `${this.config.bridgeUrl || 'http://127.0.0.1:4999'}/health`;
-      const res = await fetch(url, { signal: controller.signal });
-      const latencyMs = Date.now() - start;
-      if (res.ok) {
-        this.status = 'connected';
-        this.lastError = '';
-        return { success: true, message: `Connected to Antigravity MCP Bridge on 127.0.0.1:4999 (${latencyMs}ms)`, latencyMs };
+      for (const base of candidates) {
+        try {
+          const res = await fetch(`${base}/health`, { signal: controller.signal });
+          if (res.ok) {
+            const latencyMs = Date.now() - start;
+            this.config.bridgeUrl = base;
+            this.status = 'connected';
+            this.lastError = '';
+            const hostLabel = base.replace(/^https?:\/\//, '');
+            return {
+              success: true,
+              message: `Connected to Antigravity MCP Bridge on ${hostLabel} (${latencyMs}ms)`,
+              latencyMs,
+            };
+          }
+        } catch {
+          // try next candidate
+        }
       }
-      throw new Error(`Bridge returned HTTP ${res.status}`);
+      throw new Error('Bridge connection failed: Bridge offline. Run "npm run bridge" in terminal');
     } catch (err) {
       this.status = 'error';
       const msg = err instanceof Error && err.name === 'AbortError'
         ? 'Connection timed out after 4s'
         : err instanceof Error ? err.message : String(err);
       this.lastError = msg;
-      return { success: false, message: `Bridge connection failed: ${msg.slice(0, 100)}` };
+      return { success: false, message: msg.slice(0, 100) };
     } finally {
       clearTimeout(timer);
     }
@@ -125,13 +144,21 @@ export class AIService {
     return (await res.json()) as AISynthesizeResponse;
   }
 
-  public notifyActiveElement(data: { tag: string; selector?: string; htmlSnippet: string; siteTokens?: ExtractedTokens }): void {
+  public notifyActiveElement(
+    data: {
+      tag: string;
+      selector?: string;
+      htmlSnippet: string;
+      siteTokens?: ExtractedTokens;
+      currentMutations?: { appliedCssText?: string; tailwindClasses?: string; lastPrompt?: string };
+    } | null
+  ): void {
     if (typeof fetch === 'undefined') return;
     try {
       void fetch(`${this.config.bridgeUrl || 'http://127.0.0.1:4999'}/api/active-element`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(data ? data : { clear: true }),
       }).catch(() => {});
     } catch { /* ignore */ }
   }
@@ -147,8 +174,10 @@ export class AIService {
     }) => void
   ): void {
     if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
+    this.disconnectBridge();
     try {
       const es = new EventSource(`${this.config.bridgeUrl || 'http://127.0.0.1:4999'}/api/events`);
+      this.eventSource = es;
       es.onmessage = (e) => {
         try {
           const parsed = JSON.parse(e.data) as {
@@ -168,6 +197,10 @@ export class AIService {
     } catch { /* ignore */ }
   }
 
+  public disconnectBridge(): void {
+    if (this.eventSource) { this.eventSource.close(); this.eventSource = null; }
+  }
+
   public async generateAISuggestions(
     req: Omit<AISynthesizeRequest, 'prompt'>,
     signal?: AbortSignal,
@@ -178,9 +211,9 @@ export class AIService {
     try {
       const parsed = extractJson<{ presets?: StylePreset[] }>(syn.explanation.includes('{') ? syn.explanation : JSON.stringify(syn));
       if (Array.isArray(parsed.presets) && parsed.presets.length > 0) {
-        return parsed.presets.map((p, i) => ({ ...p, id: p.id || `ai-${i}-${Date.now()}`, contrastRating: 'AAA', contrastRatio: '7.5:1' }));
+        return parsed.presets.map((p, i) => ({ ...p, id: p.id || `ai-cycle-${setIndex}-${i}`, contrastRating: 'AAA', contrastRatio: '7.5:1' }));
       }
     } catch { /* fallback */ }
-    return [{ id: `ai-${Date.now()}`, name: 'AI Smart Redesign', description: syn.explanation || 'Bespoke design', cssText: syn.cssText, tailwindClasses: syn.tailwindClasses, contrastRating: 'AAA', contrastRatio: '7.2:1' }];
+    return [{ id: `ai-cycle-${setIndex}-0`, name: 'AI Smart Redesign', description: syn.explanation || 'Bespoke design', cssText: syn.cssText, tailwindClasses: syn.tailwindClasses, contrastRating: 'AAA', contrastRatio: '7.2:1' }];
   }
 }

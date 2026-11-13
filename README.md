@@ -113,6 +113,7 @@ The browser UI will automatically detect `http://127.0.0.1:4999` and display `�
 
 | Shortcut | Action |
 | :--- | :--- |
+| <kbd>Alt+A</kbd> | Toggle AuraCSS ON / OFF |
 | <kbd>Click</kbd> | Lock / Unlock hovered DOM element |
 | <kbd>ArrowUp</kbd> | Traverse to parent DOM node |
 | <kbd>ArrowDown</kbd> | Traverse to child DOM node |
@@ -130,22 +131,35 @@ Every file in `src/` strictly follows the Single Responsibility Principle and ad
 
 ```
 src/
-├── a11y.ts             # WCAG 2.2 APCA / Relative luminance contrast calculator (52 lines)
-├── ai-modal.ts         # Settings modal for Bridge, Gemini, and OpenAI (280 lines)
-├── ai.ts               # Multi-provider LLM service, gateway checks, auto-fallback (277 lines)
+├── a11y.ts             # WCAG 2.2 APCA / Relative luminance contrast calculator (51 lines)
+├── ai-modal.ts         # Settings modal for Bridge, Gemini, and OpenAI (188 lines)
+├── ai.ts               # Multi-provider LLM service, gateway checks, auto-fallback (190 lines)
+├── bridge-compiler.ts  # Deterministic local keyword intent compiler (205 lines)
+├── bridge-gemini.ts    # Direct Gemini Flash LLM synthesis client (81 lines)
+├── bridge-mcp.ts       # Model Context Protocol (MCP) JSON-RPC 2.0 stdio server (157 lines)
 ├── bridge-presets.ts   # Curated multi-concept design variation catalogues (152 lines)
-├── bridge.ts           # Dual-mode HTTP Bridge daemon & MCP JSON-RPC 2.0 server (294 lines)
-├── command.ts          # GoF Command Pattern history with atomic undo/redo (72 lines)
-├── customizer.ts       # Micro-tuning drawer (sliders, radius, elevation) (161 lines)
-├── dock.ts             # Floating glassmorphism variation dock & prompt bar (246 lines)
-├── harvester.ts        # Ambient DOM design token harvester (200 lines)
-├── hierarchy.ts        # Breadcrumb DOM hierarchy navigator (202 lines)
-├── ledger.ts           # CSS diff, Tailwind utility generator, and export modal (235 lines)
-├── main.ts             # Master orchestrator & lifecycle manager (296 lines)
-├── overlay.ts          # FastDOM highlight boxes & floating HUD capsule (284 lines)
-├── prompt.ts           # Natural language prompt parser & intent synthesizers (246 lines)
-├── suggester.ts        # Deterministic local design preset generator (201 lines)
-└── types.ts            # Core TypeScript interfaces & contracts (58 lines)
+├── bridge-types.ts     # Shared Bridge and MCP interface definitions (38 lines)
+├── bridge.ts           # Dual-mode HTTP Bridge daemon & route dispatcher (221 lines)
+├── command.ts          # GoF Command Pattern history with atomic undo/redo (71 lines)
+├── customizer.ts       # Micro-tuning drawer (sliders, radius, elevation) (160 lines)
+├── dock-cards.ts       # Swipeable preset cards track & drag physics (102 lines)
+├── dock-saved.ts       # Saved prompted styles popover & time-ago formatters (123 lines)
+├── dock-styles.ts      # CSS declarations for floating dock, prompt bar & popovers (263 lines)
+├── dock-typography.ts  # Typography catalogues, font scales & palette popover (193 lines)
+├── dock.ts             # Floating glassmorphism variation dock & ambient prompt bar (259 lines)
+├── draggable.ts        # Pointer drag controller & viewport clamping (174 lines)
+├── harvester.ts        # Ambient DOM design token harvester (199 lines)
+├── hierarchy.ts        # Breadcrumb DOM hierarchy navigator (201 lines)
+├── ledger-formatters.ts# CSS diff, Tailwind mapping & JSX component formatters (69 lines)
+├── ledger-styles.ts    # Shadow DOM modal styles for change ledger (61 lines)
+├── ledger.ts           # Change ledger modal, clipboard & 1-click source committer (269 lines)
+├── main.ts             # Master orchestrator & lifecycle manager (427 lines)
+├── overlay.ts          # FastDOM highlight boxes & floating HUD capsule (298 lines)
+├── prompt-analyzer.ts  # Natural language intent & dimensional prompt parser (187 lines)
+├── prompt.ts           # Design prompt synthesizers & AI bridge orchestrator (156 lines)
+├── style-mutator.ts    # Color swatch & typography Tailwind mutator functions (46 lines)
+├── suggester.ts        # Deterministic local design preset generator (200 lines)
+└── types.ts            # Core TypeScript interfaces & contracts (75 lines)
 ```
 
 ---

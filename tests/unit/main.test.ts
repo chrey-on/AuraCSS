@@ -41,6 +41,22 @@ describe('AuraCSSApp (Master Orchestrator & Lifecycle)', () => {
     expect(toggleBtn.textContent).toContain('AuraCSS: OFF');
   });
 
+  it('toggles AuraCSS ON and OFF via Alt+A keyboard shortcut', () => {
+    const shadow = document.getElementById('auracss-root')?.shadowRoot;
+    const toggleBtn = shadow?.querySelector('.auracss-toggle-btn') as HTMLButtonElement;
+    expect(toggleBtn.textContent).toContain('AuraCSS: OFF');
+
+    // Press Alt+A to activate
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', altKey: true, bubbles: true, cancelable: true }));
+    expect(toggleBtn.classList.contains('active')).toBe(true);
+    expect(toggleBtn.textContent).toContain('AuraCSS: ON');
+
+    // Press Alt+A again to deactivate
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', altKey: true, bubbles: true, cancelable: true }));
+    expect(toggleBtn.classList.contains('active')).toBe(false);
+    expect(toggleBtn.textContent).toContain('AuraCSS: OFF');
+  });
+
   it('minimizes and expands the controls stack without blocking elements', () => {
     const shadow = document.getElementById('auracss-root')?.shadowRoot;
     const stack = shadow?.querySelector('.auracss-controls-stack');
@@ -57,7 +73,7 @@ describe('AuraCSSApp (Master Orchestrator & Lifecycle)', () => {
     expect(stack?.classList.contains('minimized')).toBe(false);
   });
 
-  it('locks element on click when active and unlocks on second click', async () => {
+  it('locks element on click when active; re-clicking keeps it locked; unlocks via Escape or Ctrl+click', async () => {
     app.activate();
 
     const target = document.createElement('button');
@@ -73,8 +89,18 @@ describe('AuraCSSApp (Master Orchestrator & Lifecycle)', () => {
     const ring = shadow?.querySelector('.auracss-ring') as HTMLElement;
     expect(ring.classList.contains('locked')).toBe(true);
 
-    // Second click unlocks
+    // Re-clicking the same element keeps it locked (no accidental deselect)
     target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(ring.classList.contains('locked')).toBe(true);
+
+    // Ctrl+click unlocks
+    target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
+    expect(ring.style.display).toBe('none');
+
+    // Lock again, then Escape unlocks
+    target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(ring.classList.contains('locked')).toBe(true);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     expect(ring.style.display).toBe('none');
   });
 
@@ -249,29 +275,59 @@ describe('AuraCSSApp (Master Orchestrator & Lifecycle)', () => {
     paletteBtn.click();
     expect(popover.classList.contains('visible')).toBe(true);
 
-    // 1. Fonts (Font Family)
+    // 1. Fonts (Font Family) - 7 curated families
     const fontPills = popover.querySelectorAll('.auracss-font-pill');
-    expect(fontPills.length).toBe(4);
-    (fontPills[1] as HTMLButtonElement).click(); // Modern Mono
+    expect(fontPills.length).toBe(7);
+    (fontPills[2] as HTMLButtonElement).click(); // Modern Mono
     expect(target.style.fontFamily).toContain('monospace');
 
-    // 2. Font Sizes
+    // 2. Font Sizes (6 sizes)
     const sizePills = popover.querySelectorAll('.auracss-size-pill');
     expect(sizePills.length).toBe(6);
     (sizePills[3] as HTMLButtonElement).click(); // LG (18px)
     expect(target.style.fontSize).toBe('18px');
 
-    // 3. Font Colors
+    // 3. Font Colors (9 colors)
     const swatches = popover.querySelectorAll('.auracss-font-color-btn');
     expect(swatches.length).toBe(9);
     (swatches[3] as HTMLButtonElement).click(); // Sky Cyan (#38bdf8)
     expect(target.style.color).toMatch(/#38bdf8|rgb\(56, 189, 248\)/);
 
-    // 4. Font Styles & Weights
-    const stylePills = popover.querySelectorAll('.auracss-style-pill');
-    expect(stylePills.length).toBe(7);
+    // 4. Seven sections: Family, Size, Color, Weight, Tracking, Leading, Align
+    const sections = popover.querySelectorAll('.auracss-palette-section');
+    expect(sections.length).toBe(7);
+
+    // Section 4: Font Style & Weight (9 items)
+    const stylePills = sections[3]!.querySelectorAll('.auracss-style-pill');
+    expect(stylePills.length).toBe(9);
     (stylePills[3] as HTMLButtonElement).click(); // Bold (700)
     expect(target.style.fontWeight).toBe('700');
+
+    // Section 5: Letter Spacing (Tracking) (5 items)
+    const trackingPills = sections[4]!.querySelectorAll('.auracss-style-pill');
+    expect(trackingPills.length).toBe(5);
+    (trackingPills[3] as HTMLButtonElement).click(); // Wide (0.05em)
+    expect(target.style.letterSpacing).toBe('0.05em');
+
+    // Section 6: Line Height (Leading) (4 items)
+    const leadingPills = sections[5]!.querySelectorAll('.auracss-style-pill');
+    expect(leadingPills.length).toBe(4);
+    (leadingPills[3] as HTMLButtonElement).click(); // Relaxed (1.75)
+    expect(target.style.lineHeight).toBe('1.75');
+
+    // Section 7: Text Alignment (4 items)
+    const alignPills = sections[6]!.querySelectorAll('.auracss-style-pill');
+    expect(alignPills.length).toBe(4);
+    (alignPills[1] as HTMLButtonElement).click(); // Center
+    expect(target.style.textAlign).toBe('center');
+
+    // 8. Revert button undoes all typography modifications back to baseline
+    const revertBtn = popover.querySelector('.auracss-palette-revert') as HTMLButtonElement;
+    expect(revertBtn).not.toBeNull();
+    revertBtn.click();
+    expect(target.style.letterSpacing).toBe('');
+    expect(target.style.lineHeight).toBe('');
+    expect(target.style.textAlign).toBe('');
 
     const exportBtn = shadow?.querySelectorAll('.auracss-toggle-btn')[1] as HTMLElement;
     expect(exportBtn.textContent).toBe('Export (1)');

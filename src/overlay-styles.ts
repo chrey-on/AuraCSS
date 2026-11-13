@@ -1,0 +1,71 @@
+export const OVERLAY_STYLES = `
+:host { all: initial; position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2147483645; }
+*, *::before, *::after { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.auracss-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; overflow: visible; z-index: 2147483645; }
+.auracss-ring {
+  position: absolute; pointer-events: none; border-radius: 4px; border: 2px solid #38bdf8;
+  background: rgba(56, 189, 248, 0.08); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 0 16px rgba(56, 189, 248, 0.35);
+  transition: border-color 0.15s ease;
+  will-change: transform, width, height; display: none;
+}
+.auracss-ring.locked {
+  border-color: #a855f7; background: rgba(168, 85, 247, 0.1); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 0 20px rgba(168, 85, 247, 0.45);
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease !important;
+}
+.auracss-pill {
+  position: absolute; top: -26px; left: -2px; background: #0f172a; color: #f8fafc;
+  font-size: 11px; font-weight: 600; line-height: 1; padding: 4px 8px; border-radius: 4px;
+  letter-spacing: 0.02em; white-space: nowrap; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; gap: 4px; pointer-events: none;
+}
+.auracss-pill.flipped { top: auto; bottom: -26px; }
+.auracss-controls-stack {
+  position: fixed; top: 16px; right: 20px; display: inline-flex; align-items: center;
+  z-index: 2147483647; pointer-events: auto; user-select: none; max-width: calc(100vw - 16px);
+}
+.auracss-controls-stack.dragging { transition: none !important; user-select: none !important; }
+.auracss-controls-row {
+  display: inline-flex; align-items: center; height: 32px; max-width: calc(100vw - 16px);
+  background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 9999px; padding: 2px 6px 2px 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.2);
+  gap: 2px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.auracss-controls-drag-handle {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #64748b; font-size: 11px; cursor: grab; padding: 0 4px 0 2px;
+  touch-action: none; user-select: none; transition: color 0.15s ease;
+}
+.auracss-controls-drag-handle:hover, .auracss-controls-drag-handle.dragging { color: #38bdf8; cursor: grabbing !important; }
+.auracss-controls-divider { width: 1px; height: 14px; background: rgba(255, 255, 255, 0.15); flex-shrink: 0; }
+.auracss-toggle-btn {
+  height: 26px; padding: 0 10px; border-radius: 9999px; border: none; background: transparent; color: #f8fafc;
+  font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  transition: all 0.15s ease; white-space: nowrap; outline: none; box-shadow: none;
+}
+.auracss-toggle-btn:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
+.auracss-toggle-btn.active { color: #38bdf8; }
+.auracss-export-btn { color: #38bdf8; font-weight: 700; }
+.auracss-export-btn:hover { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; }
+.auracss-toggle-dot { width: 7px; height: 7px; border-radius: 50%; background: #64748b; transition: all 0.2s ease; }
+.auracss-toggle-btn.active .auracss-toggle-dot { background: #38bdf8; box-shadow: 0 0 8px #38bdf8; }
+.auracss-min-btn {
+  width: 22px; height: 22px; border-radius: 50%; border: none; background: transparent; color: #94a3b8;
+  font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s ease; outline: none; margin-right: 2px;
+}
+.auracss-min-btn:hover { background: rgba(255, 255, 255, 0.12); color: #f8fafc; }
+.auracss-min-badge {
+  display: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid rgba(56, 189, 248, 0.4);
+  background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  color: #38bdf8; font-size: 13px; font-weight: 700; align-items: center; justify-content: center; cursor: grab;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(56, 189, 248, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  outline: none; touch-action: none; user-select: none;
+}
+.auracss-min-badge:hover { transform: scale(1.1); box-shadow: 0 0 18px rgba(56, 189, 248, 0.6); }
+.auracss-min-badge.active { color: #38bdf8; border-color: #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.45); }
+.auracss-min-badge.dragging { cursor: grabbing !important; transform: scale(1.12); box-shadow: 0 0 22px rgba(56, 189, 248, 0.8); }
+.auracss-controls-stack.minimized .auracss-controls-row { display: none !important; }
+.auracss-controls-stack.minimized .auracss-min-badge { display: flex !important; }
+`;

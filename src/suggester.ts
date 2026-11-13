@@ -1,4 +1,9 @@
 import type { ElementStrategy, ExtractedTokens, StylePreset } from './types';
+import { BadgeStrategy, InputStrategy } from './suggester-strategies';
+import { branchPreset } from './suggester-branch';
+import { getAiVariationCyclePresets, isActionElement } from './bridge-presets';
+
+export { BadgeStrategy, InputStrategy, branchPreset };
 
 export class ActionStrategy implements ElementStrategy {
   public supports(el: HTMLElement): boolean {
@@ -17,7 +22,9 @@ export class ActionStrategy implements ElementStrategy {
         id: 'action-modern-primary',
         name: 'Aura Modern Primary',
         description: 'Vibrant brand primary with smooth elevation shadow',
-        cssText: `background-color: ${primary}; color: #ffffff; border-radius: ${radius}; border: none; padding: 10px 20px; font-weight: 600; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); cursor: pointer; transition: transform 0.15s ease, filter 0.15s ease;`,
+        cssText: `background-color: ${primary}; color: #ffffff; border-radius: ${radius}; border: none; padding: 10px 20px; font-weight: 600; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); cursor: pointer; transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;`,
+        hoverState: 'transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);',
+        activeState: 'transform: translateY(1px) scale(0.97); filter: brightness(0.95);',
         tailwindClasses: 'bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-5 py-2.5 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all',
         contrastRating: 'AAA',
         contrastRatio: '7.8:1',
@@ -26,7 +33,9 @@ export class ActionStrategy implements ElementStrategy {
         id: 'action-glass-outline',
         name: 'Frosted Glass Outline',
         description: 'Translucent glass surface with delicate alpha border',
-        cssText: `background-color: rgba(255, 255, 255, 0.08); color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: ${radius}; padding: 10px 20px; font-weight: 500; cursor: pointer; transition: background-color 0.15s ease;`,
+        cssText: `background-color: rgba(255, 255, 255, 0.08); color: #f8fafc; border: 1px solid rgba(255, 255, 255, 0.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-radius: ${radius}; padding: 10px 20px; font-weight: 500; cursor: pointer; transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;`,
+        hoverState: 'background-color: rgba(255, 255, 255, 0.16); border-color: rgba(255, 255, 255, 0.35); transform: translateY(-1px);',
+        activeState: 'transform: scale(0.97);',
         tailwindClasses: 'bg-white/10 hover:bg-white/15 border border-white/20 text-slate-100 backdrop-blur-md px-5 py-2.5 rounded-lg transition-all',
         contrastRating: 'AA',
         contrastRatio: '5.4:1',
@@ -35,7 +44,9 @@ export class ActionStrategy implements ElementStrategy {
         id: 'action-ambient-glow',
         name: 'Ambient Neon Aura',
         description: 'Brand tinted surface radiating soft ambient glow',
-        cssText: `background-color: rgba(99, 102, 241, 0.12); color: #e0e7ff; border: 1px solid rgba(99, 102, 241, 0.45); box-shadow: 0 0 16px rgba(99, 102, 241, 0.35); border-radius: ${radius}; padding: 10px 20px; font-weight: 600; cursor: pointer; transition: box-shadow 0.2s ease;`,
+        cssText: `background-color: rgba(99, 102, 241, 0.12); color: #e0e7ff; border: 1px solid rgba(99, 102, 241, 0.45); box-shadow: 0 0 16px rgba(99, 102, 241, 0.35); border-radius: ${radius}; padding: 10px 20px; font-weight: 600; cursor: pointer; transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;`,
+        hoverState: 'box-shadow: 0 0 24px rgba(99, 102, 241, 0.55); border-color: rgba(99, 102, 241, 0.7); transform: translateY(-1px);',
+        activeState: 'transform: scale(0.97);',
         tailwindClasses: 'bg-indigo-500/10 border border-indigo-500/40 text-indigo-200 shadow-[0_0_16px_rgba(99,102,241,0.35)] px-5 py-2.5 rounded-lg transition-all',
         contrastRating: 'AAA',
         contrastRatio: '8.2:1',
@@ -44,7 +55,9 @@ export class ActionStrategy implements ElementStrategy {
         id: 'action-subtle-ghost',
         name: 'Subtle Ghost Minimal',
         description: 'Clean borderless styling with gentle hover feedback',
-        cssText: `background-color: transparent; color: #94a3b8; border: 1px solid transparent; border-radius: ${radius}; padding: 10px 20px; font-weight: 500; cursor: pointer; transition: color 0.15s ease, background-color 0.15s ease;`,
+        cssText: `background-color: transparent; color: #94a3b8; border: 1px solid transparent; border-radius: ${radius}; padding: 10px 20px; font-weight: 500; cursor: pointer; transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;`,
+        hoverState: 'background-color: rgba(255, 255, 255, 0.08); color: #ffffff;',
+        activeState: 'transform: scale(0.97);',
         tailwindClasses: 'bg-transparent hover:bg-slate-800 text-slate-300 hover:text-white px-5 py-2.5 rounded-lg transition-all',
         contrastRating: 'AA',
         contrastRatio: '4.8:1',
@@ -175,24 +188,8 @@ export class TypographyStrategy implements ElementStrategy {
 }
 
 export class AuraSuggester {
-  private strategies: ElementStrategy[];
-
-  constructor() {
-    this.strategies = [
-      new ActionStrategy(),
-      new TypographyStrategy(),
-      new ContainerStrategy(),
-    ];
-  }
-
-  public suggest(el: HTMLElement, tokens: ExtractedTokens): StylePreset[] {
-    for (const strategy of this.strategies) {
-      if (strategy.supports(el)) {
-        return strategy.generatePresets(el, tokens);
-      }
-    }
-    // Default fallback to container strategy
-    return this.strategies[2]!.generatePresets(el, tokens);
+  public suggest(el: HTMLElement, _tokens?: ExtractedTokens, setIndex = 0): StylePreset[] {
+    return getAiVariationCyclePresets(setIndex, isActionElement(el));
   }
 }
 

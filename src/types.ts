@@ -13,6 +13,9 @@ export interface StylePreset {
   tailwindClasses: string;
   contrastRatio?: string;
   contrastRating?: 'AAA' | 'AA' | 'FAIL';
+  activeState?: string;
+  hoverState?: string;
+  keyframes?: string;
 }
 
 export interface StyleCommand {

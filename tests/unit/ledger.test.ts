@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { formatCssDiff, formatTailwindExport, ChangeLedgerModal } from '../../src/ledger';
 import type { StyleCommand } from '../../src/types';
 
@@ -69,6 +69,66 @@ describe('ChangeLedger (Code Exporter & Modal)', () => {
 
       modal.hide();
       expect(modalEl?.classList.contains('visible')).toBe(false);
+    });
+
+    it('renders Commit to Workspace button and handles click', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, filePath: 'd:/AuraCSS/auracss-mutations.css' }),
+      });
+      vi.stubGlobal('fetch', mockFetch);
+
+      modal.show(mockCommands);
+
+      const commitBtn = shadow.querySelector('.auracss-ledger-commit') as HTMLButtonElement;
+      expect(commitBtn).not.toBeNull();
+      expect(commitBtn.textContent).toContain('Commit to Workspace');
+
+      commitBtn.click();
+      await new Promise((r) => setTimeout(r, 0));
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://127.0.0.1:4999/api/commit-to-source',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
+      expect(commitBtn.textContent).toContain('Committed!');
+      const subtitle = shadow.querySelector('.auracss-ledger-subtitle');
+      expect(subtitle?.textContent).toContain('Committed to auracss-mutations.css in workspace');
+    });
+
+    it('renders only Commit and Copy actions, confirming download button is removed', () => {
+      modal.show(mockCommands);
+      const downloadBtn = shadow.querySelector('.auracss-ledger-download');
+      expect(downloadBtn).toBeNull();
+
+      const commitBtn = shadow.querySelector('.auracss-ledger-commit');
+      const copyBtn = shadow.querySelector('.auracss-ledger-copy');
+      expect(commitBtn).not.toBeNull();
+      expect(copyBtn).not.toBeNull();
+    });
+
+    it('provides feedback when Commit is clicked with zero recorded mutations', async () => {
+      modal.show([]);
+      const commitBtn = shadow.querySelector('.auracss-ledger-commit') as HTMLButtonElement;
+
+      await commitBtn.click();
+      expect(commitBtn.textContent).toContain('No changes to commit');
+    });
+
+    it('handles Copy to Clipboard button click with visual feedback', async () => {
+      const mockWriteText = vi.fn().mockResolvedValue(undefined);
+      vi.stubGlobal('navigator', { clipboard: { writeText: mockWriteText } });
+
+      modal.show(mockCommands);
+      const copyBtn = shadow.querySelector('.auracss-ledger-copy') as HTMLButtonElement;
+      expect(copyBtn).not.toBeNull();
+      expect(copyBtn.textContent).toBe('Copy to Clipboard');
+
+      await copyBtn.click();
+      expect(mockWriteText).toHaveBeenCalled();
+      expect(copyBtn.textContent).toContain('Copied!');
     });
   });
 });
