@@ -8,10 +8,13 @@ const HELP_STYLES = `
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.35);
   pointer-events: none; z-index: 2147483647; opacity: 0;
   transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1), transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; user-select: none;
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; max-width: calc(100vw - 24px); overflow: hidden; text-overflow: ellipsis; user-select: none;
 }
 .auracss-hud-toast.visible {
   opacity: 1; transform: translateX(-50%) translateY(0);
+}
+@media (max-width: 820px) {
+  .auracss-hud-toast { top: 58px; padding: 6px 14px; font-size: 11px; width: max-content; white-space: normal; text-align: center; border-radius: 14px; line-height: 1.35; }
 }
 .auracss-hud-toast-dot {
   width: 7px; height: 7px; border-radius: 50%; background: #38bdf8;
@@ -180,6 +183,18 @@ export class HelpModal {
     }
     const textSpan = this.toastEl.querySelector('span:last-child');
     if (textSpan) textSpan.textContent = message;
+    this.toastEl.style.removeProperty('top');
+    const root = this.toastEl.getRootNode?.() as ShadowRoot | Document | undefined;
+    const controls = root?.querySelector?.('.auracss-controls-stack') as HTMLElement | null;
+    if (controls) {
+      const cRect = controls.getBoundingClientRect();
+      const tRect = this.toastEl.getBoundingClientRect();
+      const horizOverlap = tRect.left < cRect.right + 8 && tRect.right > cRect.left - 8;
+      const restTop = parseFloat(getComputedStyle(this.toastEl).top) || 16;
+      if (horizOverlap && cRect.width > 0 && restTop < cRect.bottom + 8 && restTop + tRect.height > cRect.top - 8) {
+        this.toastEl.style.top = `${Math.round(cRect.bottom + 10)}px`;
+      }
+    }
     this.toastEl.classList.add('visible');
 
     this.toastTimer = setTimeout(() => {

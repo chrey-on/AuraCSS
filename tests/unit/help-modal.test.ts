@@ -72,4 +72,17 @@ describe('HelpModal & Activation Toast HUD', () => {
     closeBtn.click();
     expect(backdrop.classList.contains('visible')).toBe(false);
   });
+
+  it('pushes toast below floating controls when their rects overlap', () => {
+    const controls = document.createElement('div');
+    controls.className = 'auracss-controls-stack';
+    controls.getBoundingClientRect = () => ({ left: 100, right: 360, top: 10, bottom: 46, width: 260, height: 36, x: 100, y: 10, toJSON: () => ({}) });
+    shadow.appendChild(controls);
+
+    const toast = shadow.querySelector('.auracss-hud-toast') as HTMLElement;
+    toast.getBoundingClientRect = () => ({ left: 40, right: 335, top: 16, bottom: 52, width: 295, height: 36, x: 40, y: 16, toJSON: () => ({}) });
+
+    modal.showToast('AuraCSS: ON', 2000);
+    expect(toast.style.top).toBe('56px');
+  });
 });

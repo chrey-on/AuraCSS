@@ -467,4 +467,54 @@ test.describe('AuraCSS STD-REG-02 Heterogeneous Fixture Verification', () => {
     await expect(toggleBtn).toHaveText('AuraCSS: OFF');
     await expect(exportBtn).toBeHidden();
   });
+
+  test('UI Responsiveness across narrow mobile and landscape viewports', async ({ page }) => {
+    const viewports = [
+      { width: 320, height: 568 },
+      { width: 375, height: 667 },
+      { width: 667, height: 375 },
+    ];
+    const shadowHost = page.locator('#auracss-root');
+    await shadowHost.locator('.auracss-toggle-btn').first().click();
+    await page.locator('#explore-btn').click();
+
+    const controls = shadowHost.locator('.auracss-controls-stack');
+    const toast = shadowHost.locator('.auracss-hud-toast');
+    const dock = shadowHost.locator('.auracss-variation-dock');
+    const breadcrumb = shadowHost.locator('.auracss-breadcrumb-bar');
+    await expect(dock).toBeVisible();
+    await expect(breadcrumb).toBeVisible();
+
+    for (const vp of viewports) {
+      await page.setViewportSize(vp);
+      await page.waitForTimeout(80);
+      const isToastVisible = await toast.evaluate((el) => el.classList.contains('visible'));
+      const controlsBox = await controls.boundingBox();
+      const toastBox = await toast.boundingBox();
+      if (isToastVisible && controlsBox && toastBox) {
+        expect(toastBox.y).toBeGreaterThanOrEqual(controlsBox.y + controlsBox.height);
+      }
+      for (const loc of [controls, dock, breadcrumb]) {
+        const box = await loc.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          return { cls: el.className, x: r.left, y: r.top, width: r.width, height: r.height, winH: window.innerHeight };
+        });
+        expect(box.width, `${box.cls} width`).toBeGreaterThan(0);
+        expect(box.x, `${box.cls} left`).toBeGreaterThanOrEqual(-1);
+        expect(box.y, `${box.cls} top`).toBeGreaterThanOrEqual(-1);
+        expect(box.x + box.width, `${box.cls} right`).toBeLessThanOrEqual(vp.width + 1);
+        expect(box.y + box.height, `${box.cls} bottom (winH=${box.winH})`).toBeLessThanOrEqual(vp.height + 1);
+      }
+    }
+
+    // Open Change Ledger modal on 375x667 and verify card stays inside viewport
+    await page.setViewportSize({ width: 375, height: 667 });
+    await shadowHost.locator('.auracss-export-btn').click();
+    const ledgerCard = shadowHost.locator('.auracss-ledger-card');
+    await expect(ledgerCard).toBeVisible();
+    const cardBox = await ledgerCard.boundingBox();
+    expect(cardBox).not.toBeNull();
+    expect(cardBox!.width).toBeLessThanOrEqual(375);
+    expect(cardBox!.height).toBeLessThanOrEqual(667);
+  });
 });

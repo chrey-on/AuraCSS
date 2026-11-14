@@ -103,11 +103,12 @@ export const DOCK_STYLES = `
 .auracss-preset-reset.disabled { opacity: 0.35; cursor: default; pointer-events: none; }
 
 .auracss-dock-divider { width: 1px; height: 48px; background: rgba(255, 255, 255, 0.1); flex-shrink: 0; }
+.auracss-dock-content { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; flex: 1; }
 
 .auracss-cards-track {
-  display: flex; align-items: center; gap: 10px; overflow-x: auto;
+  display: flex; align-items: center; gap: 10px; overflow-x: auto; flex: 1; min-width: 0;
   scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch;
-  cursor: grab; user-select: none; max-width: min(800px, calc(100vw - 220px)); padding: 2px 2px;
+  cursor: grab; user-select: none; max-width: min(800px, calc(100vw - 200px)); padding: 2px 2px;
 }
 .auracss-cards-track::-webkit-scrollbar { display: none; }
 .auracss-cards-track.grabbing { cursor: grabbing; }
@@ -165,7 +166,7 @@ export const DOCK_STYLES = `
 
 /* Floating Popovers */
 .auracss-saved-popover, .auracss-palette-popover {
-  position: absolute; bottom: calc(100% + 10px); right: 0; width: 330px; max-width: 90vw; max-height: 440px;
+  position: absolute; bottom: calc(100% + 10px); right: 0; width: 330px; max-width: calc(100vw - 28px); max-height: min(440px, calc(100vh - 140px));
   overflow-y: auto; scrollbar-width: thin;
   background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 14px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7); padding: 14px; display: none; flex-direction: column; gap: 10px;
@@ -251,4 +252,14 @@ export const DOCK_STYLES = `
 }
 .auracss-swatch-btn:hover { transform: scale(1.18); border-color: #ffffff; box-shadow: 0 0 8px rgba(255, 255, 255, 0.4); }
 .auracss-swatch-btn.active { border: 2px solid #38bdf8; box-shadow: 0 0 8px #38bdf8; }
+@media (max-width: 540px) {
+  .auracss-variation-dock { bottom: 12px; padding: 8px 10px; gap: 6px; border-radius: 14px; }
+  .auracss-dock-content { flex-wrap: wrap; gap: 6px; }
+  .auracss-cards-track { order: -1; flex: 1 0 100%; max-width: 100%; gap: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 6px; }
+  .auracss-dock-divider { display: none; }
+  .auracss-dock-stack.left, .auracss-dock-stack.right { flex-direction: row; align-items: center; min-width: 0; }
+  .auracss-dock-stack.right { margin-left: auto; }
+  .auracss-preset-card { min-width: 140px; max-width: 170px; padding: 7px 10px; }
+  .auracss-saved-popover, .auracss-palette-popover { width: calc(100vw - 28px); padding: 10px; }
+}
 `;

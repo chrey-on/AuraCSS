@@ -1,12 +1,12 @@
 export const MODAL_STYLES = `
 .auracss-ledger-modal {
-  position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+  position: fixed; inset: 0; padding: 12px; display: none; align-items: center; justify-content: center;
   background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   z-index: 2147483647; pointer-events: auto; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 .auracss-ledger-modal.visible { display: flex; }
 .auracss-ledger-card {
-  width: 90%; max-width: 680px; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.16);
+  width: 90%; max-width: 680px; max-height: 90vh; overflow-y: auto; background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 16px; padding: 22px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   display: flex; flex-direction: column; gap: 12px; color: #f8fafc;
 }
@@ -32,7 +32,7 @@ export const MODAL_STYLES = `
 .auracss-ledger-tab:hover { background: rgba(255, 255, 255, 0.1); color: #f8fafc; }
 .auracss-ledger-tab.active { background: #38bdf8; color: #0f172a; font-weight: 700; border-color: #38bdf8; }
 .auracss-ledger-textarea {
-  width: 100%; height: 200px; box-sizing: border-box; background: #020617;
+  width: 100%; height: min(200px, 34vh); box-sizing: border-box; background: #020617;
   border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 10px; color: #38bdf8;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
   line-height: 1.5; padding: 14px; resize: vertical; outline: none;
@@ -53,4 +53,9 @@ export const MODAL_STYLES = `
   padding: 8px 16px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s ease;
 }
 .auracss-ledger-copy:hover { background: #6366f1; transform: translateY(-1px); }
+@media (max-width: 480px) {
+  .auracss-ledger-card { width: 100%; padding: 14px; }
+  .auracss-ledger-actions { justify-content: stretch; }
+  .auracss-ledger-commit, .auracss-ledger-copy { flex: 1; justify-content: center; }
+}
 `;

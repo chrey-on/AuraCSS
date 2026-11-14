@@ -1,9 +1,9 @@
 import type { AIService } from './ai';
 
 const AI_MODAL_STYLES = `
-.auracss-ai-modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 2147483647; pointer-events: auto; }
+.auracss-ai-modal-backdrop { position: fixed; inset: 0; padding: 12px; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 2147483647; pointer-events: auto; }
 .auracss-ai-modal-backdrop.visible { display: flex; }
-.auracss-ai-modal { background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; width: 440px; max-width: 92vw; padding: 20px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7); display: flex; flex-direction: column; gap: 14px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #f8fafc; }
+.auracss-ai-modal { background: #0f172a; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; width: 440px; max-width: 92vw; max-height: 88vh; overflow-y: auto; padding: 20px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7); display: flex; flex-direction: column; gap: 14px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #f8fafc; }
 .auracss-ai-modal-header { display: flex; justify-content: space-between; align-items: center; }
 .auracss-ai-modal-title { font-size: 15px; font-weight: 700; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
 .auracss-ai-modal-close { background: transparent; border: none; color: #94a3b8; font-size: 16px; cursor: pointer; padding: 4px; border-radius: 4px; }
@@ -24,9 +24,9 @@ const AI_MODAL_STYLES = `
   display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 10px;
   background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); font-size: 11.5px;
 }
-.auracss-diag-row { display: flex; justify-content: space-between; align-items: center; }
-.auracss-diag-label { color: #64748b; font-weight: 600; }
-.auracss-diag-val { color: #cbd5e1; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; }
+.auracss-diag-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.auracss-diag-label { color: #64748b; font-weight: 600; flex-shrink: 0; }
+.auracss-diag-val { color: #cbd5e1; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .auracss-ai-status { font-size: 11px; padding: 4px 8px; border-radius: 4px; width: fit-content; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .auracss-ai-status.connected { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.4); }
 .auracss-ai-status.error { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }

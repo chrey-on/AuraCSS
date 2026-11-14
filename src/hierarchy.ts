@@ -27,6 +27,7 @@ const BREADCRUMB_STYLES = `
 }
 .auracss-breadcrumb-bar.visible { display: flex; }
 .auracss-breadcrumb-bar.flipped-top { bottom: auto; top: 178px; }
+@media (max-width: 540px) { .auracss-breadcrumb-bar { bottom: 138px; } .auracss-breadcrumb-bar.flipped-top { bottom: auto; top: 204px; } }
 .auracss-breadcrumb-bar.ghost { opacity: 0.12 !important; pointer-events: none !important; }
 .auracss-breadcrumb-bar.dragging { transition: none !important; }
 .auracss-breadcrumb-bar.minimized {
@@ -42,7 +43,7 @@ const BREADCRUMB_STYLES = `
 .auracss-breadcrumb-drag:hover, .auracss-breadcrumb-drag.dragging { color: #38bdf8; cursor: grabbing !important; }
 
 .auracss-breadcrumb-items {
-  display: flex; align-items: center; gap: 5px; overflow-x: auto; scrollbar-width: none;
+  display: flex; align-items: center; gap: 5px; overflow-x: auto; scrollbar-width: none; min-width: 0; flex: 1;
 }
 .auracss-breadcrumb-items::-webkit-scrollbar { display: none; }
 
@@ -190,6 +191,8 @@ export class HierarchyManager {
     shadow.appendChild(bar);
     this.barEl = bar;
     this.itemsEl = items;
+    const onResize = () => { if (this.hasCustomPos || bar.classList.contains('minimized')) clampToViewport(bar); };
+    window.addEventListener('resize', onResize); this.cleanups.push(() => window.removeEventListener('resize', onResize));
   }
 
   public buildBreadcrumbPath(target: HTMLElement, maxDepth = 6): BreadcrumbNode[] {
@@ -244,7 +247,7 @@ export class HierarchyManager {
 
     if (dockRect && dockRect.height > 0) {
       if (shouldFlipTop) {
-        this.barEl.style.top = `${Math.round(dockRect.bottom + 10)}px`;
+        this.barEl.style.top = dockFlippedTop ? `${Math.round(dockRect.bottom + 10)}px` : '58px';
         this.barEl.style.bottom = 'auto';
       } else {
         this.barEl.style.bottom = `${Math.round(winH - dockRect.top + 10)}px`;

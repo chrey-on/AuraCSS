@@ -98,11 +98,12 @@ export class VariationDock {
     this.palettePopoverEl.className = 'auracss-palette-popover';
     this.dockContentEl = document.createElement('div');
     this.dockContentEl.className = 'auracss-dock-content';
-    this.dockContentEl.style.cssText = 'display: flex; align-items: center; gap: 8px; width: 100%;';
 
     dock.append(dragHandle, this.savedPopoverEl, this.palettePopoverEl, this.dockContentEl, minBadge);
     shadow.appendChild(dock);
     this.dockEl = dock;
+    const onResize = () => { if (this.hasCustomPos || dock.classList.contains('minimized')) clampToViewport(dock); };
+    window.addEventListener('resize', onResize); this.cleanups.push(() => window.removeEventListener('resize', onResize));
   }
 
   public setActivePresetId(id: string | null): void {

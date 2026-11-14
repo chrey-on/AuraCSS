@@ -15,8 +15,8 @@ export const OVERLAY_STYLES = `
 .auracss-pill {
   position: absolute; top: -26px; left: -2px; background: #0f172a; color: #f8fafc;
   font-size: 11px; font-weight: 600; line-height: 1; padding: 4px 8px; border-radius: 4px;
-  letter-spacing: 0.02em; white-space: nowrap; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; gap: 4px; pointer-events: none;
+  letter-spacing: 0.02em; white-space: nowrap; max-width: calc(100vw - 16px); overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; gap: 4px; pointer-events: none;
 }
 .auracss-pill.flipped { top: auto; bottom: -26px; }
 .auracss-controls-stack {
@@ -95,5 +95,11 @@ export const OVERLAY_STYLES = `
   .auracss-min-badge { width: 38px; height: 38px; font-size: 15px; }
   .auracss-min-badge::after { inset: -8px; }
   .auracss-controls-drag-handle { min-width: 20px; height: 28px; font-size: 13px; }
+}
+@media (max-width: 420px) {
+  .auracss-controls-stack { top: 10px; right: 10px; }
+  .auracss-controls-row { overflow-x: auto; scrollbar-width: none; padding: 2px 4px; }
+  .auracss-controls-row::-webkit-scrollbar { display: none; }
+  .auracss-toggle-btn { padding: 0 7px; font-size: 11px; gap: 4px; }
 }
 `;
