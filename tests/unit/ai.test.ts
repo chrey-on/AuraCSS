@@ -53,7 +53,7 @@ describe('AIService & AISettingsModal (Zero-Key Agent Bridge & Diagnostics)', ()
     expect(backdrop.classList.contains('visible')).toBe(true);
 
     const title = shadow.querySelector('.auracss-ai-modal-title');
-    expect(title?.textContent).toContain('Antigravity Agent Diagnostics');
+    expect(title?.textContent).toContain('MCP Agent Diagnostics');
 
     const badge = shadow.querySelector('.auracss-ai-bridge-badge');
     expect(badge?.textContent).toContain('Agent Bridge Active');
@@ -105,7 +105,17 @@ describe('AIService & AISettingsModal (Zero-Key Agent Bridge & Diagnostics)', ()
     await (pingBtn.onclick as () => Promise<void>)();
 
     expect(statusEl.classList.contains('connected')).toBe(true);
-    expect(statusEl.textContent).toContain('Connected to Antigravity MCP Bridge');
+    expect(statusEl.textContent).toContain('Connected to MCP Bridge');
+
+    // Dynamically adapts title and status when /health reports a connected MCP client
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ status: 'ready', clientName: 'Cursor' }),
+    });
+    await (pingBtn.onclick as () => Promise<void>)();
+    expect(shadow.querySelector('.auracss-ai-modal-title')?.textContent).toContain('Cursor Diagnostics');
+    expect(statusEl.textContent).toContain('Connected to Cursor MCP Bridge');
 
     modal.destroy();
   });

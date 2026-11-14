@@ -113,7 +113,7 @@ export class AIService {
     return { ok: true, status: res.status, data };
   }
 
-  public async testConnection(): Promise<{ success: boolean; message: string; latencyMs?: number }> {
+  public async testConnection(): Promise<{ success: boolean; message: string; latencyMs?: number; clientName?: string | null }> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 4000);
     const start = Date.now();
@@ -122,14 +122,16 @@ export class AIService {
     try {
       for (const base of candidates) {
         try {
-          const res = await this.bridgeFetch(`${base}/health`, 'GET', undefined, controller.signal);
+          const res = await this.bridgeFetch<{ clientName?: string | null }>(`${base}/health`, 'GET', undefined, controller.signal);
           if (res.ok) {
             const latencyMs = Date.now() - start;
             this.config.bridgeUrl = base;
             this.status = 'connected';
             this.lastError = '';
+            const clientName = res.data?.clientName || null;
             const hostLabel = base.replace(/^https?:\/\//, '');
-            return { success: true, message: `Connected to Antigravity MCP Bridge on ${hostLabel} (${latencyMs}ms)`, latencyMs };
+            const prefix = clientName ? `${clientName} MCP Bridge` : 'MCP Bridge';
+            return { success: true, message: `Connected to ${prefix} on ${hostLabel} (${latencyMs}ms)`, latencyMs, clientName };
           }
         } catch { /* next */ }
       }

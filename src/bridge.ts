@@ -16,6 +16,7 @@ export type { InspectedElement, BridgeConfig } from './bridge-types';
 export { startMcpStdio } from './bridge-mcp';
 
 let activeElement: InspectedElement | null = null;
+let connectedClientName: string | null = null;
 const sseClients = new Set<http.ServerResponse>();
 
 export function getActiveElement(): InspectedElement | null {
@@ -95,10 +96,20 @@ export function createBridgeServer(port = 4999): http.Server {
         status: 'ready',
         mcp: true,
         port,
+        clientName: connectedClientName,
         hasActiveElement: Boolean(activeElement),
         activeElement,
         hasGemini: Boolean(process.env.GEMINI_API_KEY),
       }, origin);
+      return;
+    }
+
+    if (url.pathname === '/api/mcp-client' && req.method === 'POST') {
+      try {
+        const body = JSON.parse(await readBody(req)) as { clientName?: string };
+        connectedClientName = typeof body?.clientName === 'string' && body.clientName.trim() ? body.clientName.trim().slice(0, 32) : null;
+        sendJson(res, 200, { success: true, clientName: connectedClientName }, origin);
+      } catch (err) { sendJson(res, 400, { error: String(err) }, origin); }
       return;
     }
 
@@ -279,7 +290,7 @@ if (isMain) {
   });
 
   if (isMcp) {
-    startMcpStdio(port, getActiveElement, broadcastSSE, getWorkspaceRoot);
+    startMcpStdio(port, getActiveElement, broadcastSSE, getWorkspaceRoot, (name) => { connectedClientName = name; });
   }
 
   const shutdown = () => gracefulShutdown(server, () => process.exit(0));

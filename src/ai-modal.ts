@@ -49,6 +49,9 @@ export interface ActiveElementInfo {
 
 export class AISettingsModal {
   private backdropEl: HTMLDivElement | null = null;
+  private titleEl: HTMLDivElement | null = null;
+  private bridgeTitleEl: HTMLDivElement | null = null;
+  private bridgeDescEl: HTMLDivElement | null = null;
   private statusEl: HTMLDivElement | null = null;
   private badgeEl: HTMLSpanElement | null = null;
   private targetValEl: HTMLSpanElement | null = null;
@@ -77,14 +80,15 @@ export class AISettingsModal {
     modal.className = 'auracss-ai-modal';
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-label', 'Antigravity Agent Diagnostics');
+    modal.setAttribute('aria-label', 'MCP Agent Diagnostics');
 
     // Header
     const header = document.createElement('div');
     header.className = 'auracss-ai-modal-header';
     const title = document.createElement('div');
     title.className = 'auracss-ai-modal-title';
-    title.innerHTML = '⚡ Antigravity Agent Diagnostics';
+    title.innerHTML = '⚡ MCP Agent Diagnostics';
+    this.titleEl = title;
     const closeBtn = document.createElement('button');
     closeBtn.className = 'auracss-ai-modal-close';
     closeBtn.setAttribute('aria-label', 'Close Diagnostics Modal');
@@ -114,12 +118,14 @@ export class AISettingsModal {
 
     const bridgeTitle = document.createElement('div');
     bridgeTitle.className = 'auracss-ai-bridge-title';
-    bridgeTitle.textContent = 'Zero-Key Antigravity Connection';
+    bridgeTitle.textContent = 'Zero-Key MCP Agent Connection';
+    this.bridgeTitleEl = bridgeTitle;
 
     const bridgeDesc = document.createElement('div');
     bridgeDesc.className = 'auracss-ai-bridge-desc';
     bridgeDesc.textContent =
-      'Prompts and design variations are intelligently synthesized via your active Antigravity session. No external API keys or rate limits required.';
+      'Prompts and design variations are intelligently synthesized via your active AI coding session. No external API keys or rate limits required.';
+    this.bridgeDescEl = bridgeDesc;
 
     bridgeCard.append(bridgeHeader, bridgeTitle, bridgeDesc);
     modal.appendChild(bridgeCard);
@@ -224,7 +230,13 @@ export class AISettingsModal {
     this.trapCleanup = () => window.removeEventListener('keydown', onKeyDown, true);
   }
 
-  private updateStatus(res: { success: boolean; message: string }): void {
+  private updateStatus(res: { success: boolean; message: string; clientName?: string | null }): void {
+    const label = res.clientName || 'MCP Agent';
+    if (this.titleEl) this.titleEl.textContent = `⚡ ${label} Diagnostics`;
+    if (this.bridgeTitleEl) this.bridgeTitleEl.textContent = `Zero-Key ${label} Connection`;
+    if (this.bridgeDescEl) {
+      this.bridgeDescEl.textContent = `Prompts and design variations are intelligently synthesized via your active ${res.clientName ? `${res.clientName} ` : 'AI coding '}session. No external API keys or rate limits required.`;
+    }
     if (this.badgeEl) {
       this.badgeEl.className = `auracss-ai-bridge-badge ${res.success ? 'connected' : 'offline'}`;
       this.badgeEl.innerHTML = res.success ? '⚡ Agent Bridge Active' : '⚠️ Bridge Offline';

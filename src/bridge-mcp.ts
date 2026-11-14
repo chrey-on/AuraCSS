@@ -5,11 +5,23 @@ import type { InspectedElement, BridgePayload } from './bridge-types';
 import { resolveSafeCssPath } from './bridge-security';
 import { sanitizeCssText } from './style-mutator';
 
+export function formatMcpClientName(raw?: string): string {
+  if (!raw || typeof raw !== 'string') return '';
+  const lower = raw.toLowerCase();
+  if (lower.includes('antigravity')) return 'Antigravity';
+  if (lower.includes('cursor')) return 'Cursor';
+  if (lower.includes('claude')) return 'Claude';
+  if (lower.includes('windsurf')) return 'Windsurf';
+  if (lower.includes('vscode') || lower.includes('copilot')) return 'VS Code';
+  return raw.trim().slice(0, 32);
+}
+
 export function startMcpStdio(
   port: number,
   getActiveElement: () => InspectedElement | null,
   broadcastSSE: (event: { type: string; payload: unknown }) => void,
-  getWorkspaceRoot = (): string => process.cwd()
+  getWorkspaceRoot = (): string => process.cwd(),
+  onClientConnected?: (clientName: string) => void
 ): readline.Interface {
   const rl = readline.createInterface({ input: process.stdin, terminal: false });
 
@@ -24,6 +36,16 @@ export function startMcpStdio(
       if (!msg.method) return;
 
       if (msg.method === 'initialize') {
+        const info = msg.params?.clientInfo as { name?: string } | undefined;
+        const clientName = formatMcpClientName(info?.name);
+        if (clientName) {
+          onClientConnected?.(clientName);
+          void fetch(`http://127.0.0.1:${port}/api/mcp-client`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clientName }),
+          }).catch(() => {});
+        }
         const res = {
           jsonrpc: '2.0',
           id: msg.id,

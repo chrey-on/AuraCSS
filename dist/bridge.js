@@ -522,7 +522,17 @@ function sanitizeCssText(css) {
 }
 
 // src/bridge-mcp.ts
-function startMcpStdio(port, getActiveElement2, broadcastSSE2, getWorkspaceRoot2 = () => process.cwd()) {
+function formatMcpClientName(raw) {
+  if (!raw || typeof raw !== "string") return "";
+  const lower = raw.toLowerCase();
+  if (lower.includes("antigravity")) return "Antigravity";
+  if (lower.includes("cursor")) return "Cursor";
+  if (lower.includes("claude")) return "Claude";
+  if (lower.includes("windsurf")) return "Windsurf";
+  if (lower.includes("vscode") || lower.includes("copilot")) return "VS Code";
+  return raw.trim().slice(0, 32);
+}
+function startMcpStdio(port, getActiveElement2, broadcastSSE2, getWorkspaceRoot2 = () => process.cwd(), onClientConnected) {
   const rl = readline.createInterface({ input: process.stdin, terminal: false });
   const shutdown = () => {
     rl.close();
@@ -536,6 +546,17 @@ function startMcpStdio(port, getActiveElement2, broadcastSSE2, getWorkspaceRoot2
       const msg = JSON.parse(line);
       if (!msg.method) return;
       if (msg.method === "initialize") {
+        const info = msg.params?.clientInfo;
+        const clientName = formatMcpClientName(info?.name);
+        if (clientName) {
+          onClientConnected?.(clientName);
+          void fetch(`http://127.0.0.1:${port}/api/mcp-client`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clientName })
+          }).catch(() => {
+          });
+        }
         const res = {
           jsonrpc: "2.0",
           id: msg.id,
@@ -750,6 +771,7 @@ try {
 } catch {
 }
 var activeElement = null;
+var connectedClientName = null;
 var sseClients = /* @__PURE__ */ new Set();
 function getActiveElement() {
   return activeElement;
@@ -828,10 +850,21 @@ function createBridgeServer(port = 4999) {
         status: "ready",
         mcp: true,
         port,
+        clientName: connectedClientName,
         hasActiveElement: Boolean(activeElement),
         activeElement,
         hasGemini: Boolean(process.env.GEMINI_API_KEY)
       }, origin);
+      return;
+    }
+    if (url.pathname === "/api/mcp-client" && req.method === "POST") {
+      try {
+        const body = JSON.parse(await readBody(req));
+        connectedClientName = typeof body?.clientName === "string" && body.clientName.trim() ? body.clientName.trim().slice(0, 32) : null;
+        sendJson(res, 200, { success: true, clientName: connectedClientName }, origin);
+      } catch (err) {
+        sendJson(res, 400, { error: String(err) }, origin);
+      }
       return;
     }
     if (url.pathname === "/api/active-element" && req.method === "POST") {
@@ -1007,7 +1040,9 @@ if (isMain) {
     }
   });
   if (isMcp) {
-    startMcpStdio(port, getActiveElement, broadcastSSE, getWorkspaceRoot);
+    startMcpStdio(port, getActiveElement, broadcastSSE, getWorkspaceRoot, (name) => {
+      connectedClientName = name;
+    });
   }
   const shutdown = () => gracefulShutdown(server, () => process.exit(0));
   process.on("SIGINT", shutdown);
