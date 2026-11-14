@@ -49,6 +49,22 @@ export async function commitLedgerToWorkspace(
   const cssContent = formatCssDiff(commands);
   syncCommittedStyles(cssContent);
 
+  const ext = typeof globalThis !== 'undefined' ? (globalThis as unknown as { chrome?: { runtime?: { sendMessage?: (m: unknown, cb: (r: { ok?: boolean; data?: { filePath?: string } }) => void) => void } } }).chrome?.runtime : undefined;
+  if (ext?.sendMessage) {
+    const extRes = await new Promise<{ ok?: boolean; data?: { filePath?: string } }>((resolve) => {
+      ext.sendMessage?.({ type: 'AURACSS_BRIDGE_FETCH', path: '/api/commit-to-source', method: 'POST', body: { filePath: 'auracss-mutations.css', cssText: cssContent } }, (r) => resolve(r || {}));
+    });
+    if (extRes.ok) {
+      commitBtn.innerHTML = '<span>✓</span><span>Committed!</span>';
+      if (subtitleEl && extRes.data?.filePath) {
+        const fileName = extRes.data.filePath.split(/[\\/]/).pop() || 'auracss-mutations.css';
+        subtitleEl.textContent = `Committed to ${fileName} in workspace • Persists on reload`;
+      }
+      setTimeout(() => { if (commitBtn) { commitBtn.innerHTML = origHtml; commitBtn.disabled = false; } }, 2000);
+      return true;
+    }
+  }
+
   const candidates = ['http://127.0.0.1:4999', 'http://localhost:4999'];
   for (const base of candidates) {
     try {

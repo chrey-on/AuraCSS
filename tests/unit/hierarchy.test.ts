@@ -159,4 +159,70 @@ describe('AuraCSSApp Hierarchical Keyboard Navigation (ArrowUp/ArrowDown)', () =
     pill = shadow?.querySelector('.auracss-pill');
     expect(pill?.textContent).toBe('button#child-btn');
   });
+
+  it('supports Ghost Mode (H key), Minimize/Expand controls, and Smart Dodge for both Breadcrumb & Dock', () => {
+    const btn = document.createElement('button');
+    btn.id = 'footer-btn';
+    document.body.appendChild(btn);
+
+    Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true });
+    vi.spyOn(btn, 'getBoundingClientRect').mockReturnValue({
+      top: 720, bottom: 760, left: 100, right: 200, width: 100, height: 40, x: 100, y: 720, toJSON: () => {},
+    });
+
+    btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    const shadow = document.getElementById('auracss-root')?.shadowRoot;
+    const dock = shadow?.querySelector('.auracss-variation-dock') as HTMLElement;
+    const breadcrumb = shadow?.querySelector('.auracss-breadcrumb-bar') as HTMLElement;
+
+    // 1. Smart Dodge flips both to top when locked element is in the bottom dock zone
+    expect(dock.classList.contains('flipped-top')).toBe(true);
+    expect(breadcrumb.classList.contains('flipped-top')).toBe(true);
+
+    // 2. Press 'H' to toggle HUD Ghost Mode (click-through)
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', bubbles: true, cancelable: true }));
+    expect(dock.classList.contains('ghost')).toBe(true);
+    expect(breadcrumb.classList.contains('ghost')).toBe(true);
+
+    // Press 'H' again to restore HUD
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'h', bubbles: true, cancelable: true }));
+    expect(dock.classList.contains('ghost')).toBe(false);
+    expect(breadcrumb.classList.contains('ghost')).toBe(false);
+
+    Object.defineProperty(window, 'innerWidth', { value: 1024, configurable: true });
+    // 3. Minimize & Expand Breadcrumb Bar (docks to right edge with circular icon badge)
+    const bcMinBtn = shadow?.querySelector('.auracss-breadcrumb-min') as HTMLElement;
+    const bcBadge = shadow?.querySelector('.auracss-breadcrumb-badge') as HTMLElement;
+    bcMinBtn.click();
+    expect(breadcrumb.classList.contains('minimized')).toBe(true);
+    expect(parseFloat(breadcrumb.style.left)).toBeGreaterThan(950);
+    expect(bcBadge.querySelector('svg')).not.toBeNull();
+    bcBadge.click();
+    expect(breadcrumb.classList.contains('minimized')).toBe(false);
+
+    // 4. Minimize & Expand Variation Dock (docks to right edge with circular icon badge)
+    const dockMinBtn = shadow?.querySelector('.auracss-dock-min-btn') as HTMLElement;
+    const dockBadge = shadow?.querySelector('.auracss-dock-min-badge') as HTMLElement;
+    dockMinBtn.click();
+    expect(dock.classList.contains('minimized')).toBe(true);
+    expect(parseFloat(dock.style.left)).toBeGreaterThan(950);
+    expect(dockBadge.querySelector('svg')).not.toBeNull();
+    dockBadge.click();
+    expect(dock.classList.contains('minimized')).toBe(false);
+
+    // 5. Verify all 3 minimized badges never stack/overlap when minimized simultaneously
+    const mainMinBtn = shadow?.querySelector('.auracss-min-btn') as HTMLElement;
+    const controlsStack = shadow?.querySelector('.auracss-controls-stack') as HTMLElement;
+    mainMinBtn.click();
+    bcMinBtn.click();
+    dockMinBtn.click();
+
+    const yMain = parseFloat(controlsStack.style.top);
+    const yBc = parseFloat(breadcrumb.style.top);
+    const yDock = parseFloat(dock.style.top);
+    expect(Math.abs(yMain - yBc)).toBeGreaterThanOrEqual(40);
+    expect(Math.abs(yBc - yDock)).toBeGreaterThanOrEqual(40);
+    expect(Math.abs(yMain - yDock)).toBeGreaterThanOrEqual(40);
+  });
 });

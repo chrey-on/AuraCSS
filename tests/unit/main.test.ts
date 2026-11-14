@@ -16,7 +16,7 @@ describe('AuraCSSApp (Master Orchestrator & Lifecycle)', () => {
     document.body.innerHTML = '';
   });
 
-  it('initializes in standby mode with floating toggle button', () => {
+  it('initializes in standby mode with floating toggle button and makes zero localhost bridge calls until activated', () => {
     const root = document.getElementById('auracss-root');
     expect(root).not.toBeNull();
 

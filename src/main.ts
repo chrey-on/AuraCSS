@@ -18,15 +18,12 @@ export class AuraCSSApp {
   private savedPromptedStyles = new WeakMap<HTMLElement, SavedPromptedStyle[]>();
   private bookmarkedPresets = new WeakMap<HTMLElement, Set<string>>();
 
-  private isActive = false; private isTransitioning = false; private isComparing = false;
+  private isActive = false; private isTransitioning = false; private isComparing = false; private isGhostMode = false;
   private abortController: AbortController | null = null;
   private lockedElement: HTMLElement | null = null;
-  private toggleBtn: HTMLButtonElement | null = null;
-  private toggleLabel: HTMLSpanElement | null = null;
-  private ledgerBtn: HTMLButtonElement | null = null;
-  private exportDivider: HTMLDivElement | null = null;
-  private minBadge: HTMLButtonElement | null = null;
-  private controlsStack: HTMLElement | null = null;
+  private toggleBtn: HTMLButtonElement | null = null; private toggleLabel: HTMLSpanElement | null = null;
+  private ledgerBtn: HTMLButtonElement | null = null; private exportDivider: HTMLDivElement | null = null;
+  private minBadge: HTMLButtonElement | null = null; private controlsStack: HTMLElement | null = null;
 
   public init(): void {
     try {
@@ -35,16 +32,8 @@ export class AuraCSSApp {
       const ctrl = this.overlay.mountControls(() => this.toggle(), () => this.ledgerModal.show(this.commandHistory.getHistory()));
       this.toggleBtn = ctrl.toggleBtn; this.toggleLabel = ctrl.toggleLabel; this.ledgerBtn = ctrl.exportBtn;
       this.exportDivider = ctrl.exportDivider; this.minBadge = ctrl.minBadge; this.controlsStack = ctrl.controlsStack;
-
-      this.aiService.subscribeBridge((p) => {
-        if (!this.isActive || (!this.lockedElement && !p.selector)) return;
-        applyBridgePayloadHelper(p, {
-          lockedElement: this.lockedElement, lockElement: (el) => this.lockElement(el),
-          savedPromptedStyles: this.savedPromptedStyles, presetContext: this.getPresetContext(),
-        });
-      });
-      this.aiService.notifyActiveElement(null);
-      void loadWorkspaceMutationsHelper();
+      const host = typeof window !== 'undefined' ? window.location?.hostname : '';
+      if (host === 'localhost' || host === '127.0.0.1') void loadWorkspaceMutationsHelper();
       this.log('AuraCSS initialized in standby mode');
 
       let isAltPressed = false;
@@ -108,6 +97,15 @@ export class AuraCSSApp {
       window.addEventListener('keydown', (e) => { try { this.keybindings.handleKeyDown(e); } catch (err) { this.error('handleKeyDown', err); } }, { capture: true, signal: sig });
       window.addEventListener('keyup', (e) => { try { this.keybindings.handleKeyUp(e); } catch (err) { this.error('handleKeyUp', err); } }, { capture: true, signal: sig });
 
+      this.aiService.subscribeBridge((p) => {
+        if (!this.isActive || (!this.lockedElement && !p.selector)) return;
+        applyBridgePayloadHelper(p, {
+          lockedElement: this.lockedElement, lockElement: (el) => this.lockElement(el),
+          savedPromptedStyles: this.savedPromptedStyles, presetContext: this.getPresetContext(),
+        });
+      });
+      this.aiService.notifyActiveElement(null);
+
       const sel = typeof localStorage !== 'undefined' ? localStorage.getItem('auracss_active_selector') : null;
       if (sel && !this.lockedElement) {
         try {
@@ -159,7 +157,7 @@ export class AuraCSSApp {
 
   private handleMouseOver = (e: MouseEvent): void => { try { if (!this.lockedElement) { const t = this.overlay.resolveHostElement(e); t ? this.overlay.updateHighlight(t, false) : this.overlay.clear(); } } catch (err) { this.error('handleMouseOver', err); } };
   private handleClick = (e: MouseEvent): void => { try { this.helpModal.hideToast(); const t = this.overlay.resolveHostElement(e); if (!t) return; e.preventDefault(); e.stopPropagation(); if ((e.ctrlKey || e.metaKey) && this.lockedElement === t) { this.unlockElement(); return; } if (this.lockedElement !== t) this.lockElement(t); } catch (err) { this.error('handleClick', err); } };
-  private handleScrollOrResize = (): void => { try { if (this.lockedElement?.isConnected) this.overlay.updateHighlight(this.lockedElement, true); if (this.controlsStack) clampToViewport(this.controlsStack); } catch (err) { this.error('handleScrollOrResize', err); } };
+  private handleScrollOrResize = (): void => { try { if (this.lockedElement?.isConnected) { this.overlay.updateHighlight(this.lockedElement, true); const f = this.variationDock.dodgeTarget(this.lockedElement); this.hierarchy.dodgeTarget(this.lockedElement, f, this.variationDock.getDockRect()); } if (this.controlsStack) clampToViewport(this.controlsStack); } catch (err) { this.error('handleScrollOrResize', err); } };
 
   private keybindings = createKeybindingHandlers({
     getLockedElement: () => this.lockedElement, getIsComparing: () => this.isComparing,
@@ -168,12 +166,20 @@ export class AuraCSSApp {
     updateLedgerCount: () => this.updateLedgerCount(), overlay: this.overlay,
     stylePatches: this.stylePatches, revertElement: (el) => this.revertElement(el),
     hierarchy: this.hierarchy, lockElement: (el) => this.lockElement(el),
-    showHelp: () => this.helpModal.show(),
+    showHelp: () => this.helpModal.show(), toggleGhostMode: () => this.toggleGhostMode(),
   });
   private globalKeyCleanup: (() => void) | null = null;
 
+  public toggleGhostMode(force?: boolean): void {
+    this.isGhostMode = typeof force === 'boolean' ? force : !this.isGhostMode;
+    this.variationDock.setGhostMode(this.isGhostMode);
+    this.hierarchy.setGhostMode(this.isGhostMode);
+    if (this.isGhostMode) this.helpModal.showToast('👻 Ghost HUD: ON — Click through to elements behind dock (Press H to restore)');
+  }
+
   private lockElement(el: HTMLElement): void {
     this.lockedElement = el;
+    this.toggleGhostMode(false);
     try { localStorage.setItem('auracss_active_selector', formatElementLabel(el)); } catch {}
     this.overlay.updateHighlight(el, true);
     this.hierarchy.render(el, (selected) => this.lockElement(selected));
@@ -182,12 +188,12 @@ export class AuraCSSApp {
       this.currentDockPresets.set(el, this.suggester.suggest(el, this.harvester.harvest()));
     }
     this.refreshDock(el, this.stylePatches.has(el));
+    const flipped = this.variationDock.dodgeTarget(el);
+    this.hierarchy.dodgeTarget(el, flipped, this.variationDock.getDockRect());
     const patch = this.stylePatches.get(el);
     const lastPrompt = (this.savedPromptedStyles.get(el) || [])[0]?.name;
     this.aiService.notifyActiveElement({
-      tag: el.tagName.toLowerCase(),
-      selector: formatElementLabel(el),
-      htmlSnippet: el.outerHTML.slice(0, 200),
+      tag: el.tagName.toLowerCase(), selector: formatElementLabel(el), htmlSnippet: el.outerHTML.slice(0, 200),
       siteTokens: this.harvester.harvest(),
       currentMutations: patch ? { appliedCssText: patch.appliedCssText, tailwindClasses: patch.tailwindClasses, lastPrompt } : undefined,
     });

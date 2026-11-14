@@ -186,4 +186,42 @@ describe('AIService & AISettingsModal (Zero-Key Agent Bridge & Diagnostics)', ()
     modal.destroy();
     expect(shadow.querySelector('.auracss-ai-modal-backdrop')).toBeNull();
   });
+
+  it('routes bridge requests through chrome.runtime.sendMessage when running inside extension to avoid PNA popups', async () => {
+    const sendMessageSpy = vi.fn((msg: any, cb?: (res: any) => void) => {
+      if (msg.type === 'AURACSS_BRIDGE_FETCH' && msg.path === '/api/synthesize') {
+        cb?.({
+          ok: true,
+          status: 200,
+          data: {
+            cssText: 'background: #10b981;',
+            tailwindClasses: 'bg-emerald-500',
+            explanation: 'Proxied via background worker',
+          },
+        });
+      }
+    });
+    const fetchSpy = vi.fn();
+    global.fetch = fetchSpy;
+    (globalThis as any).chrome = {
+      runtime: {
+        sendMessage: sendMessageSpy,
+        onMessage: { addListener: vi.fn(), removeListener: vi.fn() },
+      },
+    };
+
+    const res = await aiService.synthesize({
+      prompt: 'emerald button',
+      tag: 'button',
+      htmlSnippet: '<button>Go</button>',
+      computedStyles: {},
+      siteTokens: mockTokens,
+    });
+
+    expect(res.cssText).toBe('background: #10b981;');
+    expect(sendMessageSpy).toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    delete (globalThis as any).chrome;
+  });
 });

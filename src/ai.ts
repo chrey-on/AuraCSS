@@ -34,11 +34,25 @@ function extractJson<T>(raw: string): T {
   return JSON.parse(clean) as T;
 }
 
+interface ChromeRuntime {
+  sendMessage?: (msg: unknown, cb?: (res: { ok?: boolean; status?: number; data?: unknown }) => void) => void;
+  onMessage?: {
+    addListener: (fn: (msg: unknown) => void) => void;
+    removeListener: (fn: (msg: unknown) => void) => void;
+  };
+}
+
+function getExtRuntime(): ChromeRuntime | null {
+  const c = typeof globalThis !== 'undefined' ? (globalThis as unknown as { chrome?: { runtime?: ChromeRuntime } }).chrome : undefined;
+  return c?.runtime?.sendMessage ? c.runtime : null;
+}
+
 export class AIService {
   private config: AIConfig = { provider: 'bridge', bridgeUrl: 'http://127.0.0.1:4999', apiKey: '', model: 'agent-auto' };
   private status: AIConnectionStatus = 'untested';
   private lastError = '';
   private eventSource: EventSource | null = null;
+  private extMsgCleanup: (() => void) | null = null;
 
   constructor() {
     this.loadConfig();
@@ -73,42 +87,52 @@ export class AIService {
     return { status: this.status, error: this.lastError };
   }
 
+  private async bridgeFetch<T>(path: string, method = 'GET', body?: unknown, signal?: AbortSignal): Promise<{ ok: boolean; status: number; data: T }> {
+    const ext = getExtRuntime();
+    if (ext?.sendMessage) {
+      return new Promise((resolve, reject) => {
+        ext.sendMessage?.({ type: 'AURACSS_BRIDGE_FETCH', path, method, body }, (res) => {
+          if (!res || !res.ok) reject(new Error(`Bridge HTTP ${res?.status ?? 0}`));
+          else resolve({ ok: true, status: res.status || 200, data: res.data as T });
+        });
+      });
+    }
+    const url = path.startsWith('http') ? path : `${this.config.bridgeUrl || 'http://127.0.0.1:4999'}${path}`;
+    const res = await fetch(url, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+      signal,
+    });
+    if (!res.ok) throw new Error(`Bridge HTTP ${res.status}`);
+    const data = (await res.json()) as T;
+    return { ok: true, status: res.status, data };
+  }
+
   public async testConnection(): Promise<{ success: boolean; message: string; latencyMs?: number }> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 4000);
     const start = Date.now();
-
-    const candidates = [
-      this.config.bridgeUrl || 'http://127.0.0.1:4999',
-      'http://localhost:4999',
-    ];
+    const candidates = [this.config.bridgeUrl || 'http://127.0.0.1:4999', 'http://localhost:4999'];
 
     try {
       for (const base of candidates) {
         try {
-          const res = await fetch(`${base}/health`, { signal: controller.signal });
+          const res = await this.bridgeFetch(`${base}/health`, 'GET', undefined, controller.signal);
           if (res.ok) {
             const latencyMs = Date.now() - start;
             this.config.bridgeUrl = base;
             this.status = 'connected';
             this.lastError = '';
             const hostLabel = base.replace(/^https?:\/\//, '');
-            return {
-              success: true,
-              message: `Connected to Antigravity MCP Bridge on ${hostLabel} (${latencyMs}ms)`,
-              latencyMs,
-            };
+            return { success: true, message: `Connected to Antigravity MCP Bridge on ${hostLabel} (${latencyMs}ms)`, latencyMs };
           }
-        } catch {
-          // try next candidate
-        }
+        } catch { /* next */ }
       }
       throw new Error('Bridge connection failed: Bridge offline. Run "npm run bridge" in terminal');
     } catch (err) {
       this.status = 'error';
-      const msg = err instanceof Error && err.name === 'AbortError'
-        ? 'Connection timed out after 4s'
-        : err instanceof Error ? err.message : String(err);
+      const msg = err instanceof Error && err.name === 'AbortError' ? 'Connection timed out after 4s' : err instanceof Error ? err.message : String(err);
       this.lastError = msg;
       return { success: false, message: msg.slice(0, 100) };
     } finally {
@@ -116,10 +140,7 @@ export class AIService {
     }
   }
 
-  public async synthesize(
-    req: AISynthesizeRequest,
-    signal?: AbortSignal
-  ): Promise<AISynthesizeResponse> {
+  public async synthesize(req: AISynthesizeRequest, signal?: AbortSignal): Promise<AISynthesizeResponse> {
     try {
       const result = await this.callBridge(req, signal);
       this.status = 'connected';
@@ -133,15 +154,8 @@ export class AIService {
   }
 
   private async callBridge(req: AISynthesizeRequest, signal?: AbortSignal): Promise<AISynthesizeResponse> {
-    const url = `${this.config.bridgeUrl || 'http://127.0.0.1:4999'}/api/synthesize`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req),
-      signal,
-    });
-    if (!res.ok) throw new Error(`Bridge HTTP ${res.status}`);
-    return (await res.json()) as AISynthesizeResponse;
+    const { data } = await this.bridgeFetch<AISynthesizeResponse>('/api/synthesize', 'POST', req, signal);
+    return data;
   }
 
   public notifyActiveElement(
@@ -153,12 +167,18 @@ export class AIService {
       currentMutations?: { appliedCssText?: string; tailwindClasses?: string; lastPrompt?: string };
     } | null
   ): void {
+    const payload = data ? data : { clear: true };
+    const ext = getExtRuntime();
+    if (ext?.sendMessage) {
+      try { ext.sendMessage({ type: 'AURACSS_BRIDGE_FETCH', path: '/api/active-element', method: 'POST', body: payload }); } catch {}
+      return;
+    }
     if (typeof fetch === 'undefined') return;
     try {
       void fetch(`${this.config.bridgeUrl || 'http://127.0.0.1:4999'}/api/active-element`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data ? data : { clear: true }),
+        body: JSON.stringify(payload),
       }).catch(() => {});
     } catch { /* ignore */ }
   }
@@ -173,24 +193,30 @@ export class AIService {
       selector?: string;
     }) => void
   ): void {
-    if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
     this.disconnectBridge();
+    const ext = getExtRuntime();
+    if (ext?.sendMessage && ext.onMessage) {
+      const handler = (msg: unknown) => {
+        if (msg && typeof msg === 'object' && (msg as { type?: string }).type === 'AURACSS_BRIDGE_EVENT') {
+          const payload = (msg as { payload?: { cssText?: string } }).payload;
+          if (payload?.cssText) onApply(payload as { cssText: string });
+        }
+      };
+      ext.onMessage.addListener(handler);
+      try { ext.sendMessage({ type: 'AURACSS_BRIDGE_SUBSCRIBE' }); } catch {}
+      this.extMsgCleanup = () => {
+        try { ext.onMessage?.removeListener(handler); ext.sendMessage?.({ type: 'AURACSS_BRIDGE_UNSUBSCRIBE' }); } catch {}
+      };
+      return;
+    }
+
+    if (typeof window === 'undefined' || typeof EventSource === 'undefined') return;
     try {
       const es = new EventSource(`${this.config.bridgeUrl || 'http://127.0.0.1:4999'}/api/events`);
       this.eventSource = es;
       es.onmessage = (e) => {
         try {
-          const parsed = JSON.parse(e.data) as {
-            type?: string;
-            payload?: {
-              cssText: string;
-              tailwindClasses?: string;
-              prompt?: string;
-              name?: string;
-              description?: string;
-              selector?: string;
-            };
-          };
+          const parsed = JSON.parse(e.data) as { type?: string; payload?: { cssText: string } };
           if (parsed.type === 'apply_style' && parsed.payload?.cssText) onApply(parsed.payload);
         } catch { /* ignore */ }
       };
@@ -198,6 +224,8 @@ export class AIService {
   }
 
   public disconnectBridge(): void {
+    this.extMsgCleanup?.();
+    this.extMsgCleanup = null;
     if (this.eventSource) { this.eventSource.close(); this.eventSource = null; }
   }
 

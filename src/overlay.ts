@@ -209,9 +209,8 @@ export class OverlayManager {
       const winW = typeof window !== 'undefined' ? (document.documentElement?.clientWidth || window.innerWidth || 1024) : 1024;
       const minRect = minBtn.getBoundingClientRect();
       const stackRect = stack.getBoundingClientRect();
-      const anchorRight = minRect.width > 0 ? minRect.right : stackRect.right;
-      const anchorTop = minRect.height > 0 ? minRect.top + (minRect.height - 32) / 2 : stackRect.top;
-      const rightX = Math.max(Math.round(anchorRight - 32), Math.round(winW - 32 - 16));
+      const anchorTop = minRect.height > 0 ? minRect.top + (minRect.height - 32) / 2 : (stackRect.top || 16);
+      const rightX = Math.round(winW - 32 - 16);
       stack.classList.add('minimized');
       stack.style.setProperty('left', `${rightX}px`, 'important');
       stack.style.setProperty('top', `${Math.round(anchorTop)}px`, 'important');

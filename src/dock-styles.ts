@@ -19,8 +19,49 @@ export const DOCK_STYLES = `
   user-select: none;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   max-width: calc(100vw - 28px);
+  transition: opacity 0.18s ease;
 }
 .auracss-variation-dock.visible { display: flex; }
+.auracss-variation-dock.flipped-top { bottom: auto; top: 56px; }
+.auracss-variation-dock.ghost { opacity: 0.12 !important; pointer-events: none !important; }
+.auracss-variation-dock.dragging { transition: none !important; }
+.auracss-variation-dock.minimized {
+  padding: 0 !important; background: transparent !important; border: none !important;
+  box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+.auracss-variation-dock.minimized .auracss-dock-drag-handle,
+.auracss-variation-dock.minimized .auracss-dock-content { display: none !important; }
+.auracss-variation-dock.minimized .auracss-dock-min-badge { display: flex !important; }
+
+.auracss-dock-drag-handle {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #64748b; font-size: 12px; cursor: grab; padding: 4px 4px;
+  border-radius: 6px; touch-action: none; user-select: none; flex-shrink: 0;
+}
+.auracss-dock-drag-handle:hover, .auracss-dock-drag-handle.dragging { color: #38bdf8; cursor: grabbing !important; }
+
+.auracss-dock-min-btn {
+  display: flex; align-items: center; justify-content: center; width: 22px; height: 28px; border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s ease; flex-shrink: 0;
+}
+.auracss-dock-min-btn:hover { background: rgba(255, 255, 255, 0.15); color: #f8fafc; transform: translateY(-1px); }
+
+.auracss-dock-min-badge {
+  position: relative; display: none; width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid rgba(56, 189, 248, 0.45); background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  color: #38bdf8; align-items: center; justify-content: center; cursor: grab;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(56, 189, 248, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  outline: none; touch-action: none; user-select: none; padding: 0;
+}
+.auracss-dock-min-badge:hover { transform: scale(1.1); border-color: #38bdf8; box-shadow: 0 0 18px rgba(56, 189, 248, 0.6); }
+.auracss-dock-min-badge.dragging { cursor: grabbing !important; transform: scale(1.12); }
+.auracss-variation-dock.flipped-top .auracss-saved-popover,
+.auracss-variation-dock.flipped-top .auracss-palette-popover {
+  bottom: auto; top: calc(100% + 10px);
+}
 
 .auracss-dock-stack {
   display: flex;

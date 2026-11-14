@@ -34,8 +34,9 @@ export function savePosition(pos: DragPosition, key = DEFAULT_STORAGE_KEY): void
 
 export function clampToViewport(target: HTMLElement, margin = DEFAULT_MARGIN): DragPosition {
   const rect = target.getBoundingClientRect();
-  const width = rect.width || 32;
-  const height = rect.height || 32;
+  const isMin = target.classList.contains('minimized');
+  const width = isMin ? 32 : (rect.width || 32);
+  const height = isMin ? 32 : (rect.height || 32);
   const winW = typeof window !== 'undefined'
     ? (document.documentElement?.clientWidth || window.innerWidth || 1024)
     : 1024;
@@ -56,12 +57,50 @@ export function clampToViewport(target: HTMLElement, margin = DEFAULT_MARGIN): D
     : rect.top;
 
   const clampedX = Math.round(Math.max(minX, Math.min(maxX, currentLeft)));
-  const clampedY = Math.round(Math.max(minY, Math.min(maxY, currentTop)));
+  let clampedY = Math.round(Math.max(minY, Math.min(maxY, currentTop)));
+
+  const root = target.parentNode as ParentNode | null;
+  if (isMin && root && typeof root.querySelectorAll === 'function') {
+    const others = Array.from(
+      root.querySelectorAll('.auracss-controls-stack, .auracss-breadcrumb-bar.visible, .auracss-variation-dock.visible')
+    ).filter((el): el is HTMLElement => el instanceof HTMLElement && el !== target);
+
+    const collides = (x: number, y: number): boolean => {
+      for (const other of others) {
+        const oRect = other.getBoundingClientRect();
+        const oIsMin = other.classList.contains('minimized');
+        const oW = oIsMin ? 32 : (oRect.width || 160);
+        const oH = oIsMin ? 32 : (oRect.height || 36);
+        const oLeft = other.style.left && other.style.left !== 'auto'
+          ? parseFloat(other.style.left)
+          : (oRect.left || (other.classList.contains('auracss-controls-stack') ? winW - oW - 16 : 0));
+        const oTop = other.style.top && other.style.top !== 'auto'
+          ? parseFloat(other.style.top)
+          : (oRect.top || (other.classList.contains('auracss-controls-stack') ? 16 : 0));
+
+        const pad = 10;
+        if (x < oLeft + oW + pad && x + width + pad > oLeft && y < oTop + oH + pad && y + height + pad > oTop) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    if (collides(clampedX, clampedY)) {
+      for (let offset = 2; offset < winH; offset += 2) {
+        const downY = clampedY + offset;
+        const upY = clampedY - offset;
+        if (downY <= maxY && !collides(clampedX, downY)) { clampedY = downY; break; }
+        if (upY >= minY && !collides(clampedX, upY)) { clampedY = upY; break; }
+      }
+    }
+  }
 
   target.style.setProperty('left', `${clampedX}px`, 'important');
   target.style.setProperty('top', `${clampedY}px`, 'important');
   target.style.setProperty('right', 'auto', 'important');
   target.style.setProperty('bottom', 'auto', 'important');
+  target.style.setProperty('transform', 'none', 'important');
 
   return { left: clampedX, top: clampedY };
 }
@@ -122,6 +161,7 @@ export function makeDraggable(
       target.style.setProperty('top', `${targetY}px`, 'important');
       target.style.setProperty('right', 'auto', 'important');
       target.style.setProperty('bottom', 'auto', 'important');
+      target.style.setProperty('transform', 'none', 'important');
     }
   };
 

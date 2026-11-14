@@ -125,6 +125,7 @@ export class HelpModal {
     // Section 3: Controls & Modals
     const s3 = this.createSection('Controls & Dialogs', [
       { desc: 'Toggle AuraCSS ON/OFF', kbd: 'Alt+A' },
+      { desc: 'Ghost HUD (Click-through)', kbd: 'H' },
       { desc: 'Open shortcut cheat sheet', kbd: '?' },
       { desc: 'Close dialogs / deselect', kbd: 'Esc' },
     ]);

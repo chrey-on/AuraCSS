@@ -17,6 +17,7 @@ export interface KeybindingContext {
   hierarchy: HierarchyManager;
   lockElement: (el: HTMLElement) => void;
   showHelp: () => void;
+  toggleGhostMode?: () => void;
 }
 
 export function createKeybindingHandlers(ctx: KeybindingContext): {
@@ -70,6 +71,11 @@ export function createKeybindingHandlers(ctx: KeybindingContext): {
     if (e.key === '?' || (e.shiftKey && e.key === '/') || e.key === 'F1') {
       e.preventDefault();
       ctx.showHelp();
+      return;
+    }
+    if (locked && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'h') {
+      e.preventDefault();
+      ctx.toggleGhostMode?.();
       return;
     }
   };
