@@ -5,11 +5,11 @@ import type { AISettingsModal } from './ai-modal';
 import type { AuraHarvester } from './harvester';
 import type { PresetContext } from './main-presets';
 import { applyPresetHelper } from './main-presets';
-import { formatElementLabel } from './hierarchy';
 import { computeSwatchMutation, computeTypographyTailwind, injectLiveRules, sanitizeCssText } from './style-mutator';
-import { collectElementContext } from './element-context';
+import { collectElementContext, getUniqueSelector } from './element-context';
 import { syncCommittedStyles } from './ledger-actions';
-import { getAiVariationCyclePresets, isActionElement } from './bridge-presets';
+import { classifyElement } from './element-classifier';
+import { getArchetypeVariationPresets } from './archetype-presets';
 
 export type { BridgePayload, StyleInteraction } from './bridge-types';
 export { injectLiveRules };
@@ -122,7 +122,7 @@ export function applyBridgePayloadHelper(
       }
     }
 
-    const sel = formatElementLabel(target);
+    const sel = getUniqueSelector(target);
     const safeCssText = sanitizeCssText(p.cssText || '');
     injectLiveRules(sel, p);
     applyInteractionHelper(target, p.interaction);
@@ -217,7 +217,7 @@ export async function handleAISuggestionsHelper(
     );
     ctx.renderDock(el, presets, ctx.isModified, nextSet);
   } catch {
-    const fallbackPresets = getAiVariationCyclePresets(nextSet, isActionElement(el));
+    const fallbackPresets = getArchetypeVariationPresets(classifyElement(el), nextSet);
     ctx.renderDock(el, fallbackPresets, ctx.isModified, nextSet);
   }
 }

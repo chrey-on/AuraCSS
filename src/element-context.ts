@@ -92,6 +92,65 @@ function describeParentLayout(el: HTMLElement): string {
   return parts.join(', ');
 }
 
+function escapeCssIdent(ident: string): string {
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(ident);
+  return ident.replace(/[^a-zA-Z0-9_-]/g, (c) => `\\${c}`);
+}
+
+/**
+ * Generates a DOM-unique CSS selector path anchored at the nearest unique #id or body
+ * so committed styles and live rules target only the selected element, never shared utility classes.
+ */
+export function getUniqueSelector(el: HTMLElement): string {
+  if (!el || !el.tagName) return '*';
+  const doc = el.ownerDocument || (typeof document !== 'undefined' ? document : null);
+
+  if (el.id && doc) {
+    const idSel = `#${escapeCssIdent(el.id)}`;
+    try {
+      if (doc.querySelectorAll(idSel).length === 1) return idSel;
+    } catch {}
+  }
+
+  const parts: string[] = [];
+  let curr: HTMLElement | null = el;
+  while (curr && curr.nodeType === 1 && curr !== doc?.documentElement) {
+    if (curr === doc?.body) {
+      parts.unshift('body');
+      break;
+    }
+    if (curr.id && doc) {
+      const idSel = `#${escapeCssIdent(curr.id)}`;
+      try {
+        if (doc.querySelectorAll(idSel).length === 1) {
+          parts.unshift(idSel);
+          break;
+        }
+      } catch {}
+    }
+
+    const tag = curr.tagName.toLowerCase();
+    const parent: HTMLElement | null = curr.parentElement;
+    if (parent) {
+      let sameTagCount = 0;
+      let index = 0;
+      for (let i = 0; i < parent.children.length; i++) {
+        const sibling = parent.children[i];
+        if (sibling && sibling.tagName.toLowerCase() === tag) {
+          sameTagCount++;
+          if (sibling === curr) index = sameTagCount;
+        }
+      }
+      parts.unshift(sameTagCount > 1 && index > 0 ? `${tag}:nth-of-type(${index})` : tag);
+    } else {
+      parts.unshift(tag);
+    }
+    curr = parent;
+  }
+
+  return parts.join(' > ') || el.tagName.toLowerCase();
+}
+
 export function collectElementContext(el: HTMLElement): ElementVisualContext {
   const cs = typeof getComputedStyle === 'function' ? getComputedStyle(el) : null;
   const computedStyles: Record<string, string> = {};

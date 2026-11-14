@@ -1,1 +1,11 @@
-/* === AuraCSS Workspace Mutations === */
+/* === AuraCSS Mutated Styles (2026-11-14T10:23:00.566Z) === */
+/* === AuraCSS Generated CSS Export === */
+
+#right_rail_container > div > div > div:nth-of-type(1) {
+  background: #e2e8f0;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 26px;
+  box-shadow: 8px 8px 16px #94a3b8, -6px -6px 14px #ffffff;
+}

@@ -39,7 +39,7 @@ It operates seamlessly as a **Chromium Extension (Manifest V3)**, a standalone *
 - 🔐 **Zero-Popup Extension Architecture & Hardened Local Bridge**
   - Auto-mounts on `localhost` / `127.0.0.1` and injects on-demand via <kbd>Alt+A</kbd> or the toolbar icon on external websites.
   - Routes Bridge HTTP & SSE traffic through the Manifest V3 background service worker (`background.js`) to eliminate browser *"Access other apps and services on this device"* (PNA) popups and third-party CSP blocks.
-  - Local Bridge enforces `127.0.0.1` loopback binding, DNS-rebinding `Host` validation, and strict `.css` workspace confinement.
+  - Local Bridge enforces `127.0.0.1` loopback binding, DNS-rebinding `Host` & `Origin` allowlist validation, symlink-safe `.css` workspace confinement, live CSS sanitization, and `/api/synthesize` rate limiting.
 - ↺ **GoF Command History & Hold to Compare**
   - Full Undo/Redo history (<kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd>).
   - Press and hold <kbd>Spacebar</kbd> to momentarily compare the mutated element against its original unmodified styles.
@@ -49,7 +49,8 @@ It operates seamlessly as a **Chromium Extension (Manifest V3)**, a standalone *
   - Formats mutations as ready-to-copy CSS declaration blocks or equivalent Tailwind CSS utility classes.
 - 🤖 **Universal Model Context Protocol (MCP) & Local Bridge**
   - Built-in dual-mode daemon listening on `http://127.0.0.1:4999`.
-  - Connects your browser session directly to **Antigravity**, **Cursor**, or **Claude Desktop** via standard MCP JSON-RPC 2.0.
+  - Connects your browser session directly to **Antigravity**, **Cursor**, **Claude**, **Windsurf**, or any MCP-compatible AI client via standard MCP JSON-RPC 2.0, automatically detecting and displaying the connected client in the diagnostics modal.
+  - Captures rich visual & spatial element context (`role`, `innerText`, `rect`, `computedStyles`, `parentLayout`, `effectiveBackground`, and `childSummary`) so non-technical natural-language prompts translate accurately into live CSS.
 
 ---
 
@@ -72,8 +73,8 @@ npm run dev
 npm run build
 ```
 The build produces:
-- `dist/auracss.bundle.js` — Single, zero-dependency browser IIFE bundle (133.6 kB).
-- `dist/bridge.js` — Dual-mode HTTP Bridge & MCP Server daemon (44.0 kB).
+- `dist/auracss.bundle.js` — Single, zero-dependency browser IIFE bundle (137.6 kB).
+- `dist/bridge.js` — Dual-mode HTTP Bridge & MCP Server daemon (49.9 kB).
 
 ### 3. Load as a Chromium Extension (Chrome / Edge / Brave)
 1. Open `chrome://extensions/` in your browser.
@@ -123,9 +124,9 @@ Add this entry to your assistant's MCP configuration (e.g. `claude_desktop_confi
 ### Native Tools Exposed to the AI:
 | Tool Name | Description |
 | :--- | :--- |
-| `auracss_inspect_element` | Returns the HTML snippet, tag, and computed CSS tokens of the active browser element. |
-| `auracss_apply_style` | Injects live CSS declarations and Tailwind classes directly into the user's browser in real-time. |
-| `auracss_commit_to_source` | Writes accepted style mutations directly into the target source code file on disk. |
+| `auracss_inspect_element` | Returns the active element's role, visible text, dimensions, parent layout, surface contrast, computed styles, site tokens, and cleaned HTML snippet. |
+| `auracss_apply_style` | Injects sanitized live CSS declarations, `:hover`/`:active` states, `@keyframes`, click toggles, and Tailwind classes into the browser in real-time. |
+| `auracss_commit_to_source` | Safely writes sanitized CSS mutations to a workspace-confined `.css` file on disk. |
 
 ### Running the Standalone Zero-Key Local Bridge
 If you want to use AuraCSS in your browser with zero API keys entered into the UI, simply run:
@@ -168,6 +169,7 @@ src/
 ├── bridge-gemini.ts    # Direct Gemini Flash LLM synthesis client
 ├── bridge-mcp.ts       # Model Context Protocol (MCP) JSON-RPC 2.0 stdio server
 ├── bridge-presets.ts   # Curated multi-concept design variation catalogues
+├── bridge-security.ts  # Host/Origin allowlisting, symlink-safe .css guard & rate limiter
 ├── bridge-types.ts     # Shared Bridge and MCP interface definitions
 ├── bridge.ts           # Dual-mode HTTP Bridge daemon & route dispatcher
 ├── command.ts          # GoF Command Pattern history with atomic undo/redo
@@ -178,6 +180,7 @@ src/
 ├── dock-typography.ts  # Typography catalogues, font scales & palette popover
 ├── dock.ts             # Floating glassmorphism variation dock & ambient prompt bar
 ├── draggable.ts        # Pointer drag controller & viewport clamping
+├── element-context.ts  # Natural-language visual, layout & surface context collector
 ├── harvester.ts        # Ambient DOM design token harvester
 ├── help-modal.ts       # Shortcuts cheat sheet dialog & activation toast HUD
 ├── hierarchy.ts        # Breadcrumb DOM hierarchy navigator
@@ -197,14 +200,14 @@ src/
 AuraCSS is validated with comprehensive unit and end-to-end test suites:
 
 ```bash
-# Run unit tests across all 17 test suites (106 tests)
+# Run unit tests across all 18 test suites (112 tests)
 npm test
 
 # Run Playwright end-to-end tests across 4 heterogeneous DOM topologies (12 tests)
 npm run test:e2e
 ```
 
-- **Unit Suite:** 106 / 106 Vitest tests passing (`tests/unit/`).
+- **Unit Suite:** 112 / 112 Vitest tests passing (`tests/unit/`).
 - **E2E Suite:** 12 / 12 Playwright tests passing (`tests/e2e/`).
 
 ---

@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { collectElementContext } from '../../src/element-context';
+import { collectElementContext, getUniqueSelector } from '../../src/element-context';
+import { isIconOrMediaElement, getIconVariationCyclePresets } from '../../src/icon-presets';
+import { classifyElement } from '../../src/element-classifier';
+import { getArchetypeVariationPresets } from '../../src/archetype-presets';
+import { parseDesignPrompt } from '../../src/prompt';
 import { injectLiveRules, clearLiveRules } from '../../src/style-mutator';
 import { applyBridgePayloadHelper } from '../../src/main-actions';
 import { CommandHistory } from '../../src/command';
@@ -108,5 +112,78 @@ describe('live rules & malformed selector resilience', () => {
         }
       )
     ).not.toThrow();
+  });
+
+  it('generates DOM-unique selectors for elements sharing atomic classes like Facebook', () => {
+    const wrapper = document.createElement('div');
+    const card1 = document.createElement('div');
+    card1.className = 'x9f619 x1ja2u2z';
+    const card2 = document.createElement('div');
+    card2.className = 'x9f619 x1ja2u2z';
+    wrapper.append(card1, card2);
+    document.body.appendChild(wrapper);
+
+    const sel1 = getUniqueSelector(card1);
+    const sel2 = getUniqueSelector(card2);
+    expect(sel1).not.toBe(sel2);
+    expect(document.querySelectorAll(sel1)).toHaveLength(1);
+    expect(document.querySelectorAll(sel2)).toHaveLength(1);
+    expect(document.querySelector(sel1)).toBe(card1);
+    expect(document.querySelector(sel2)).toBe(card2);
+  });
+
+  it('detects img/svg/emoji elements and serves filter/transform icon presets instead of card padding', () => {
+    const img = document.createElement('img');
+    const emoji = document.createElement('span');
+    emoji.textContent = '🔥';
+    const box = document.createElement('div');
+    box.textContent = 'Regular Card';
+
+    expect(isIconOrMediaElement(img)).toBe(true);
+    expect(isIconOrMediaElement(emoji)).toBe(true);
+    expect(isIconOrMediaElement(box)).toBe(false);
+
+    const cycle0 = getIconVariationCyclePresets(0);
+    const cycle1 = getIconVariationCyclePresets(1);
+    expect(cycle0).toHaveLength(4);
+    expect(cycle0[2]!.cssText).toContain('drop-shadow');
+    expect(cycle0[0]!.cssText).not.toContain('padding: 24px');
+    expect(cycle1[0]!.cssText).toContain('hue-rotate');
+  });
+
+  it('classifies all 8 element archetypes and adapts both variations and offline prompts', () => {
+    const h1 = document.createElement('h1');
+    h1.textContent = 'Hero Title';
+    const input = document.createElement('input');
+    const badge = document.createElement('span');
+    badge.textContent = 'New';
+    const prose = document.createElement('p');
+    prose.textContent = 'This is a longer paragraph of readable body copy for testing.';
+    const btn = document.createElement('button');
+    btn.textContent = 'Click';
+    const card = document.createElement('section');
+    card.innerHTML = '<div>A</div><div>B</div>';
+    const img = document.createElement('img');
+
+    expect(classifyElement(h1)).toBe('heading-title');
+    expect(classifyElement(input)).toBe('input-control');
+    expect(classifyElement(badge)).toBe('badge-pill');
+    expect(classifyElement(prose)).toBe('text-prose');
+    expect(classifyElement(btn)).toBe('button-action');
+    expect(classifyElement(card)).toBe('card-container');
+    expect(classifyElement(img)).toBe('icon-emoji');
+
+    expect(getArchetypeVariationPresets('heading-title', 0)[0]!.cssText).toContain('-webkit-background-clip: text');
+    expect(getArchetypeVariationPresets('input-control', 0)[0]!.cssText).toContain('outline: none');
+    expect(getArchetypeVariationPresets('badge-pill', 0)[0]!.cssText).toContain('border-radius: 9999px');
+    expect(getArchetypeVariationPresets('text-prose', 0)[0]!.cssText).toContain('line-height: 1.65');
+
+    const iconPrompt = parseDesignPrompt('make it glow cyan', img, {
+      isDarkMode: true,
+      primaryColor: '#38bdf8',
+      fontFamily: 'Inter',
+      baseRadius: '8px',
+    });
+    expect(iconPrompt.cssText).toContain('drop-shadow');
   });
 });

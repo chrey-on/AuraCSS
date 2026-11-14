@@ -1,4 +1,5 @@
 import type { StylePreset } from './types';
+import { getIconVariationCyclePresets } from './icon-presets';
 
 export function isActionElement(el: HTMLElement): boolean {
   const tag = el.tagName.toLowerCase();
@@ -7,7 +8,8 @@ export function isActionElement(el: HTMLElement): boolean {
   return tag === 'button' || tag === 'a' || role === 'button' || isButtonLike;
 }
 
-export function getAiVariationCyclePresets(cycleIndex: number, isAction: boolean): StylePreset[] {
+export function getAiVariationCyclePresets(cycleIndex: number, isAction: boolean, isIcon = false): StylePreset[] {
+  if (isIcon) return getIconVariationCyclePresets(cycleIndex);
   const cycle = Math.abs(Number(cycleIndex) || 0) % 3;
 
   // Set 0: Neo-Digital Glass & Volumetric Elevation

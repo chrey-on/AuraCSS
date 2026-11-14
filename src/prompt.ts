@@ -4,6 +4,7 @@ import {
   isLightColor,
   analyzePromptText,
 } from './prompt-analyzer';
+import { classifyElement } from './element-classifier';
 
 export type { PromptAnalysis };
 export { isLightColor, analyzePromptText };
@@ -14,16 +15,25 @@ export function parseDesignPrompt(
   tokens: ExtractedTokens
 ): StylePreset {
   const analysis = analyzePromptText(prompt, tokens.primaryColor);
-  const tag = el.tagName.toLowerCase();
-  const isAction = tag === 'button' || tag === 'a' || el.getAttribute('role') === 'button';
-  const isHeading = /^h[1-6]$/i.test(tag);
+  const archetype = classifyElement(el);
+  const isAction = archetype === 'button-action';
+  const isHeading = archetype === 'heading-title';
   const isLight = isLightColor(analysis.colorHex);
   const textContrastColor = isLight ? '#0f172a' : '#ffffff';
 
   let cssText = '';
   let twClasses = '';
 
-  if (isHeading) {
+  if (archetype === 'icon-emoji') {
+    const glowHex = analysis.colorHex || '#38bdf8';
+    cssText = analysis.isGlow || analysis.isPop
+      ? `filter: drop-shadow(0 0 10px ${glowHex}) brightness(1.12) saturate(1.25); transition: transform 0.2s ease, filter 0.2s ease;`
+      : `filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3)) saturate(1.2); transform: scale(1.08); transition: transform 0.2s ease;`;
+    twClasses = 'drop-shadow-lg saturate-125 transition-transform';
+  } else if (archetype === 'photo-media') {
+    cssText = `border-radius: ${analysis.radius === '0px' ? '0px' : '16px'}; object-fit: cover; filter: contrast(1.08) saturate(1.12); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);`;
+    twClasses = `${analysis.twRadius} object-cover shadow-xl`;
+  } else if (isHeading) {
     if (analysis.hasBgIntent) {
       cssText = `background-color: ${analysis.colorHex}; color: ${textContrastColor}; padding: 8px 16px; border-radius: ${analysis.radius}; font-weight: 700;`;
       twClasses = `bg-${analysis.twColor} ${isLight ? 'text-slate-900' : 'text-white'} px-4 py-2 ${analysis.twRadius} font-bold`;

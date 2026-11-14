@@ -1,4 +1,4 @@
-import { OverlayManager } from './overlay'; import { HierarchyManager, formatElementLabel } from './hierarchy'; import { AuraHarvester } from './harvester'; import { AuraSuggester, VariationDock } from './suggester'; import { CommandHistory } from './command'; import { ChangeLedgerModal } from './ledger'; import { FineTuneCustomizer, type StyleTuneUpdate } from './customizer'; import { AIService } from './ai'; import { AISettingsModal } from './ai-modal'; import { HelpModal } from './help-modal'; import { clampToViewport } from './draggable'; import { createKeybindingHandlers } from './main-keybindings'; import { renderDockHelper } from './main-dock'; import { commitStyleChange, applyPresetHelper, revertElementHelper, peekPresetHelper, unpeekPresetHelper } from './main-presets'; import { applyBridgePayloadHelper, applyColorSwatchHelper, applyTypographyUpdateHelper, revertTypographyHelper, clearTypographyBaseline, handleAISuggestionsHelper, loadWorkspaceMutationsHelper } from './main-actions'; import { collectElementContext } from './element-context'; import type { StylePreset, StylePatch, SavedPromptedStyle } from './types';
+import { OverlayManager } from './overlay'; import { HierarchyManager, formatElementLabel } from './hierarchy'; import { AuraHarvester } from './harvester'; import { AuraSuggester, VariationDock } from './suggester'; import { CommandHistory } from './command'; import { ChangeLedgerModal } from './ledger'; import { FineTuneCustomizer, type StyleTuneUpdate } from './customizer'; import { AIService } from './ai'; import { AISettingsModal } from './ai-modal'; import { HelpModal } from './help-modal'; import { clampToViewport } from './draggable'; import { createKeybindingHandlers } from './main-keybindings'; import { renderDockHelper } from './main-dock'; import { commitStyleChange, applyPresetHelper, revertElementHelper, peekPresetHelper, unpeekPresetHelper } from './main-presets'; import { applyBridgePayloadHelper, applyColorSwatchHelper, applyTypographyUpdateHelper, revertTypographyHelper, clearTypographyBaseline, handleAISuggestionsHelper, loadWorkspaceMutationsHelper } from './main-actions'; import { collectElementContext, getUniqueSelector } from './element-context'; import type { StylePreset, StylePatch, SavedPromptedStyle } from './types';
 
 declare global {
   interface Window { __AURACSS_DEBUG__?: boolean; __AURACSS_INSTANCE__?: AuraCSSApp; }
@@ -181,7 +181,7 @@ export class AuraCSSApp {
   private lockElement(el: HTMLElement): void {
     this.lockedElement = el;
     this.toggleGhostMode(false);
-    try { localStorage.setItem('auracss_active_selector', formatElementLabel(el)); } catch {}
+    try { localStorage.setItem('auracss_active_selector', getUniqueSelector(el)); } catch {}
     this.overlay.updateHighlight(el, true);
     this.hierarchy.render(el, (selected) => this.lockElement(selected));
     if (!this.currentDockPresets.has(el)) {
@@ -194,7 +194,7 @@ export class AuraCSSApp {
     const patch = this.stylePatches.get(el);
     const lastPrompt = (this.savedPromptedStyles.get(el) || [])[0]?.name;
     this.aiService.notifyActiveElement({
-      ...collectElementContext(el), selector: formatElementLabel(el), siteTokens: this.harvester.harvest(),
+      ...collectElementContext(el), selector: getUniqueSelector(el), siteTokens: this.harvester.harvest(),
       currentMutations: patch ? { appliedCssText: patch.appliedCssText, tailwindClasses: patch.tailwindClasses, lastPrompt } : undefined,
     });
     this.log('Locked:', el);

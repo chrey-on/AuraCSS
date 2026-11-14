@@ -1,4 +1,5 @@
-import { getAiVariationCyclePresets } from './bridge-presets';
+import { classifySnapshot } from './element-classifier';
+import { getArchetypeVariationPresets } from './archetype-presets';
 import type { ColorDef, SynthesizeResponse } from './bridge-types';
 
 export const COLOR_MAP: Record<string, ColorDef> = {
@@ -56,13 +57,15 @@ export async function synthesizeWithLocalOrEnv(
   _htmlSnippet = '',
   _computedStyles: Record<string, string> = {},
   _siteTokens: Record<string, unknown> = {},
-  setIndex = 0
+  setIndex = 0,
+  innerText = '',
+  rect?: { width: number; height: number }
 ): Promise<SynthesizeResponse> {
   const p = prompt.toLowerCase();
-  const isAction = tag === 'button' || tag === 'a';
+  const archetype = classifySnapshot(tag, _htmlSnippet, innerText, rect);
 
   if (p.includes('diverse design variations') || p.includes('presets') || p.includes('4 variations')) {
-    const presets = getAiVariationCyclePresets(setIndex, isAction);
+    const presets = getArchetypeVariationPresets(archetype, setIndex);
     return {
       cssText: presets[0]!.cssText,
       tailwindClasses: presets[0]!.tailwindClasses,
@@ -71,6 +74,27 @@ export async function synthesizeWithLocalOrEnv(
   }
 
   const color = extractColorDef(p);
+  if (archetype === 'icon-emoji') {
+    const glowHex = color ? color.hex : '#38bdf8';
+    const cssText = p.includes('glow') || p.includes('pop') || p.includes('halo')
+      ? `filter: drop-shadow(0 0 10px ${glowHex}) brightness(1.12) saturate(1.25); transition: transform 0.2s ease, filter 0.2s ease;`
+      : p.includes('mono') || p.includes('gray') || p.includes('dark')
+      ? 'filter: grayscale(1) contrast(1.3); transition: filter 0.2s ease;'
+      : 'filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35)) saturate(1.2); transform: scale(1.08); transition: transform 0.2s ease;';
+    return {
+      cssText,
+      tailwindClasses: 'drop-shadow-lg saturate-125 transition-transform',
+      explanation: `Applied icon-aware filter & transform styling to <${tag}>`,
+    };
+  }
+  if (archetype === 'photo-media') {
+    const radius = p.includes('circle') || p.includes('round') || p.includes('pill') ? '9999px' : '16px';
+    return {
+      cssText: `border-radius: ${radius}; object-fit: cover; filter: contrast(1.08) saturate(1.15); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);`,
+      tailwindClasses: `rounded-2xl object-cover shadow-xl`,
+      explanation: `Applied media framing & contrast styling to <${tag}>`,
+    };
+  }
   const hasNegatedBg = /\b(remove|no|without|clear|transparent)\s+(?:the\s+)?(?:background|bg|fill)\b/i.test(p);
   const hasBg = !hasNegatedBg && (p.includes('background') || p.includes('bg') || p.includes('fill') || (!p.includes('text') && !p.includes('border') && color !== null));
   const hasText = p.includes('text') || p.includes('font') || p.includes('foreground');

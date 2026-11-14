@@ -167,12 +167,8 @@ export function createBridgeServer(port = 4999): http.Server {
         let response = (geminiKey && body.setIndex === undefined) ? await synthesizeWithGemini(body, geminiKey) : null;
         if (!response) {
           response = await synthesizeWithLocalOrEnv(
-            body.prompt,
-            body.tag,
-            body.htmlSnippet,
-            body.computedStyles,
-            body.siteTokens,
-            body.setIndex
+            body.prompt, body.tag, body.htmlSnippet, body.computedStyles, body.siteTokens,
+            body.setIndex, body.innerText, body.rect
           );
         }
         sendJson(res, 200, response, origin);

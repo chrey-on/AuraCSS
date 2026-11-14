@@ -29,7 +29,7 @@ Rules:
 2. cssText MUST contain valid CSS property declarations (e.g. "background-color: #0f172a; color: #38bdf8; border-radius: 9999px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);").
 3. tailwindClasses MUST contain equivalent Tailwind utility classes.
 4. Ensure WCAG AA accessibility (contrast ratio >= 4.5:1) – auto-correct text/background pairs that fail contrast.
-5. Adapt styling to element type: buttons get interactive states and shadows; cards get layered shadows and padding; headings get tight tracking and bold weights.
+5. Adapt styling to element type: buttons get interactive states and shadows; cards get layered shadows and padding; headings get tight tracking and bold weights; for <img>, <svg>, icons, or emojis, use CSS filter (drop-shadow, hue-rotate, saturate, brightness), transform (scale/rotate), and compact pill framing instead of large 24px card padding.
 6. Provide a concise 1-sentence description in explanation.`;
 
     const userContent = `Target Element: <${context.tag}> (${context.role || 'element'})

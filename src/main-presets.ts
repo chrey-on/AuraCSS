@@ -2,8 +2,8 @@ import type { StylePreset, StylePatch } from './types';
 import type { CommandHistory } from './command';
 import type { VariationDock } from './suggester';
 import type { OverlayManager } from './overlay';
-import { formatElementLabel } from './hierarchy';
 import { injectLiveRules } from './style-mutator';
+import { getUniqueSelector } from './element-context';
 
 export interface PresetContext {
   stylePatches: WeakMap<HTMLElement, StylePatch>;
@@ -36,7 +36,7 @@ export function peekPresetHelper(
   }
   el.style.cssText = preset.cssText;
   if (preset.activeState || preset.hoverState || preset.keyframes) {
-    injectLiveRules(formatElementLabel(el), preset);
+    injectLiveRules(getUniqueSelector(el), preset);
   }
   ctx.overlay.updateHighlight(el, true);
 }
@@ -58,7 +58,7 @@ export function unpeekPresetHelper(
   activePeekElement = null;
   activePeekOriginalCss = null;
   if (patch) {
-    injectLiveRules(formatElementLabel(el), {});
+    injectLiveRules(getUniqueSelector(el), {});
   } else {
     injectLiveRules('', {});
   }
@@ -77,7 +77,7 @@ export function commitStyleChange(
   ctx.stylePatches.set(el, { originalCssText: original, appliedCssText: newCss, tailwindClasses: tw });
   ctx.commandHistory.execute({
     element: el,
-    selectorPath: formatElementLabel(el),
+    selectorPath: getUniqueSelector(el),
     previousCssText: prevCss,
     appliedCssText: newCss,
     tailwindClasses: tw,
@@ -98,7 +98,7 @@ export function applyPresetHelper(
   ctx.activePresetIdMap.set(el, preset.id);
   ctx.variationDock.setActivePresetId(preset.id);
   if (preset.activeState || preset.hoverState || preset.keyframes) {
-    injectLiveRules(formatElementLabel(el), preset);
+    injectLiveRules(getUniqueSelector(el), preset);
   }
   const current = ctx.stylePatches.get(el);
   if (current && current.appliedCssText === preset.cssText) return;

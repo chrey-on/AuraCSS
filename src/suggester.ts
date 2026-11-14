@@ -1,7 +1,8 @@
 import type { ElementStrategy, ExtractedTokens, StylePreset } from './types';
 import { BadgeStrategy, InputStrategy } from './suggester-strategies';
 import { branchPreset } from './suggester-branch';
-import { getAiVariationCyclePresets, isActionElement } from './bridge-presets';
+import { classifyElement } from './element-classifier';
+import { getArchetypeVariationPresets } from './archetype-presets';
 
 export { BadgeStrategy, InputStrategy, branchPreset };
 
@@ -189,7 +190,8 @@ export class TypographyStrategy implements ElementStrategy {
 
 export class AuraSuggester {
   public suggest(el: HTMLElement, _tokens?: ExtractedTokens, setIndex = 0): StylePreset[] {
-    return getAiVariationCyclePresets(setIndex, isActionElement(el));
+    const archetype = classifyElement(el);
+    return getArchetypeVariationPresets(archetype, setIndex);
   }
 }
 
