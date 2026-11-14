@@ -25,13 +25,17 @@ It operates seamlessly as a **Chromium Extension (Manifest V3)**, a standalone *
   - Inspect any element on hover. Click to lock.
   - Interactive breadcrumb bar displays the exact DOM ancestor chain.
   - Keyboard navigation (<kbd>ArrowUp</kbd> / <kbd>ArrowDown</kbd>) allows effortless parent/child node traversal without breaking selection.
-- 🎨 **Ambient Design Token Harvesting**
+- 🎨 **Ambient Design Token Harvesting & Typography Popover**
   - Automatically parses the host page to extract primary colors, typography families, border radius scales, spacing units, and dark mode state.
-- 🪄 **Natural Language Prompt Synthesis**
-  - Type design intents directly into the dock (e.g. *"frosted glass cyan pill with ambient glow"*).
-  - Uses an intelligent multi-provider engine (Local Bridge, Google Gemini, OpenAI, or local rule fallback) to formulate production-grade CSS.
-- 🎛️ **Micro-Tuning Drawer**
-  - Fine-tune border radius, padding, and elevation/glow with live interactive sliders and preset chips.
+  - Includes a live Typography & Font Styles popover (font families, sizes, weights, tracking, leading, alignment, and swatches) plus live hover-peek and preset bookmarking.
+- 👻 **Anti-Occlusion & Draggable Floating HUD**
+  - **Ghost Mode (<kbd>H</kbd>)**: Instantly turns the Variation Dock and Breadcrumb Bar 88% transparent and click-through so you can interact with elements behind them.
+  - **Smart Dodge**: Automatically flips the Dock and Breadcrumb Bar away from bottom-viewport elements.
+  - **Right-Rail Minimize & Dragging**: Drag any bar via its `⋮⋮` handle or click `–` to collapse it into a non-overlapping circular icon badge docked cleanly along the right edge.
+- 🔐 **Zero-Popup Extension Architecture & Hardened Local Bridge**
+  - Auto-mounts on `localhost` / `127.0.0.1` and injects on-demand via <kbd>Alt+A</kbd> or the toolbar icon on external websites.
+  - Routes Bridge HTTP & SSE traffic through the Manifest V3 background service worker (`background.js`) to eliminate browser *"Access other apps and services on this device"* (PNA) popups and third-party CSP blocks.
+  - Local Bridge enforces `127.0.0.1` loopback binding, DNS-rebinding `Host` validation, and strict `.css` workspace confinement.
 - ↺ **GoF Command History & Hold to Compare**
   - Full Undo/Redo history (<kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd>).
   - Press and hold <kbd>Spacebar</kbd> to momentarily compare the mutated element against its original unmodified styles.
@@ -64,15 +68,16 @@ npm run dev
 npm run build
 ```
 The build produces:
-- `dist/auracss.bundle.js` — Single, zero-dependency browser IIFE bundle (68 kB).
-- `dist/bridge.js` — Dual-mode HTTP Bridge & MCP Server daemon (9.9 kB).
+- `dist/auracss.bundle.js` — Single, zero-dependency browser IIFE bundle (133.6 kB).
+- `dist/bridge.js` — Dual-mode HTTP Bridge & MCP Server daemon (44.0 kB).
 
 ### 3. Load as a Chromium Extension (Chrome / Edge / Brave)
 1. Open `chrome://extensions/` in your browser.
 2. Enable **Developer mode** (toggle in top-right corner).
 3. Click **Load unpacked** and select the root directory of this repository (`d:\AuraCSS`).
-4. AuraCSS is now active!
-   - Click the extension icon in the toolbar or press <kbd>Alt+A</kbd> to toggle.
+4. How it works:
+   - **On `localhost` / `127.0.0.1`**: The `✦ AuraCSS: OFF` pill appears automatically in the top-right corner.
+   - **On any external website**: AuraCSS stays completely unloaded (0 popups, 0 overhead) until you press <kbd>Alt+A</kbd> or click the AuraCSS toolbar icon to activate it on-demand.
    - Customize your hotkey anytime in `chrome://extensions/shortcuts`.
 
 ### 4. Zero-Install Bookmarklet & CDN Injector (No Node.js Required)
@@ -132,6 +137,7 @@ The browser UI will automatically detect `http://127.0.0.1:4999` and display `�
 | Shortcut | Action |
 | :--- | :--- |
 | <kbd>Alt+A</kbd> | Toggle AuraCSS ON / OFF (or click extension icon) |
+| <kbd>H</kbd> | Toggle HUD Ghost Mode (transparent & click-through Dock/Breadcrumbs) |
 | <kbd>?</kbd> / <kbd>Shift+/</kbd> / <kbd>F1</kbd> | Open Shortcut Cheat Sheet dialog |
 | <kbd>Click</kbd> | Lock / Unlock hovered DOM element |
 | <kbd>Ctrl+Click</kbd> | Deselect locked DOM element |
@@ -187,14 +193,14 @@ src/
 AuraCSS is validated with comprehensive unit and end-to-end test suites:
 
 ```bash
-# Run unit tests across all 17 test suites (102 tests)
+# Run unit tests across all 17 test suites (106 tests)
 npm test
 
 # Run Playwright end-to-end tests across 4 heterogeneous DOM topologies (12 tests)
 npm run test:e2e
 ```
 
-- **Unit Suite:** 102 / 102 Vitest tests passing (`tests/unit/`).
+- **Unit Suite:** 106 / 106 Vitest tests passing (`tests/unit/`).
 - **E2E Suite:** 12 / 12 Playwright tests passing (`tests/e2e/`).
 
 ---
