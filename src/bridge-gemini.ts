@@ -32,10 +32,13 @@ Rules:
 5. Adapt styling to element type: buttons get interactive states and shadows; cards get layered shadows and padding; headings get tight tracking and bold weights.
 6. Provide a concise 1-sentence description in explanation.`;
 
-    const userContent = `Target Element: <${context.tag}>
+    const userContent = `Target Element: <${context.tag}> (${context.role || 'element'})
 HTML Snippet: ${context.htmlSnippet || `<${context.tag}></${context.tag}>`}
 Inner Text: ${context.innerText || 'None'}
+Size: ${context.rect ? `${context.rect.width}x${context.rect.height}px` : 'unknown'}
 Parent Layout: ${context.parentLayout || 'normal flow'}
+Contents: ${context.childSummary || 'unknown'}
+Surface Background: ${context.effectiveBackground ? `${context.effectiveBackground.color} (${context.effectiveBackground.isDark ? 'dark surface' : 'light surface'})` : 'unknown'}
 Computed Styles: ${JSON.stringify(context.computedStyles || {})}
 Site Theme Tokens: ${JSON.stringify(context.siteTokens || {})}
 

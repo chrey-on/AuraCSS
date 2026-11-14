@@ -2,6 +2,8 @@ import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
 import type { InspectedElement, BridgePayload } from './bridge-types';
+import { resolveSafeCssPath } from './bridge-security';
+import { sanitizeCssText } from './style-mutator';
 
 export function startMcpStdio(
   port: number,
@@ -130,7 +132,22 @@ export function startMcpStdio(
               } catch { /* ignore */ }
             }
             let text = el
-              ? `Active Element: <${el.tag}>\nSelector: ${el.selector || el.tag}\nSnippet: ${el.htmlSnippet}\nTokens: ${JSON.stringify(el.siteTokens || {})}`
+              ? [
+                  `Active Element: <${el.tag}> (${el.role || 'element'})`,
+                  `Selector: ${el.selector || el.tag}`,
+                  el.innerText ? `Visible Text: "${el.innerText}"` : null,
+                  el.rect ? `Size: ${el.rect.width}x${el.rect.height}px` : null,
+                  el.parentLayout ? `Parent Layout: ${el.parentLayout}` : null,
+                  el.childSummary ? `Contents: ${el.childSummary}` : null,
+                  el.effectiveBackground
+                    ? `Surface Background: ${el.effectiveBackground.color} (${el.effectiveBackground.isDark ? 'dark surface' : 'light surface'})`
+                    : null,
+                  el.computedStyles ? `Current Computed Styles: ${JSON.stringify(el.computedStyles)}` : null,
+                  `Site Tokens: ${JSON.stringify(el.siteTokens || {})}`,
+                  `HTML Snippet: ${el.htmlSnippet}`,
+                ]
+                  .filter(Boolean)
+                  .join('\n')
               : '⚠️ AuraCSS is turned OFF or no element is currently selected in your browser. Please toggle AuraCSS to ON and click an element to select it first.';
             if (el?.currentMutations) {
               text += `\nPrior Applied Mutations:\n- Last Prompt: "${el.currentMutations.lastPrompt || 'None'}"\n- Current CSS: ${el.currentMutations.appliedCssText || 'None'}`;
@@ -191,14 +208,19 @@ export function startMcpStdio(
         }
 
         if (p.name === 'auracss_commit_to_source') {
-          const args = p.arguments as { filePath: string; cssText: string };
-          const root = getWorkspaceRoot();
-          const safePath = path.resolve(root, args.filePath);
-          fs.mkdirSync(path.dirname(safePath), { recursive: true });
-          const header = `/* === AuraCSS Mutated Styles (${new Date().toISOString()}) === */\n`;
-          fs.writeFileSync(safePath, `${header}${args.cssText}\n`);
-          const text = `Successfully committed styles to ${safePath}`;
-          process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { content: [{ type: 'text', text }] } }) + '\n');
+          try {
+            const args = p.arguments as { filePath: string; cssText: string };
+            const root = getWorkspaceRoot();
+            const safePath = resolveSafeCssPath(root, args.filePath || 'auracss-mutations.css');
+            const safeCss = sanitizeCssText(args.cssText || '');
+            fs.mkdirSync(path.dirname(safePath), { recursive: true });
+            const header = `/* === AuraCSS Mutated Styles (${new Date().toISOString()}) === */\n`;
+            fs.writeFileSync(safePath, `${header}${safeCss}\n`);
+            const text = `Successfully committed styles to ${safePath}`;
+            process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { content: [{ type: 'text', text }] } }) + '\n');
+          } catch (err) {
+            process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32602, message: String(err) } }) + '\n');
+          }
           return;
         }
 

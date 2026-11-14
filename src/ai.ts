@@ -13,9 +13,13 @@ export interface AIConfig {
 export interface AISynthesizeRequest {
   prompt: string;
   tag: string;
+  role?: string;
   htmlSnippet: string;
   innerText?: string;
+  rect?: { width: number; height: number };
   parentLayout?: string;
+  effectiveBackground?: { color: string; isDark: boolean };
+  childSummary?: string;
   computedStyles: Record<string, string>;
   siteTokens: ExtractedTokens;
   setIndex?: number;

@@ -1,11 +1,15 @@
 export interface InspectedElement {
   tag: string;
+  role?: string;
   selector?: string;
   htmlSnippet: string;
   innerText?: string;
+  rect?: { width: number; height: number };
   computedStyles?: Record<string, string>;
   siteTokens?: Record<string, unknown>;
   parentLayout?: string;
+  effectiveBackground?: { color: string; isDark: boolean };
+  childSummary?: string;
   updatedAt: number;
   currentMutations?: {
     appliedCssText?: string;
@@ -47,11 +51,15 @@ export interface ColorDef {
 export interface ElementContextSnapshot {
   prompt: string;
   tag: string;
+  role?: string;
   htmlSnippet?: string;
   innerText?: string;
+  rect?: { width: number; height: number };
   computedStyles?: Record<string, string>;
   siteTokens?: Record<string, unknown>;
   parentLayout?: string;
+  effectiveBackground?: { color: string; isDark: boolean };
+  childSummary?: string;
   setIndex?: number;
 }
 

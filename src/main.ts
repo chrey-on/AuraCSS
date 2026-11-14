@@ -1,4 +1,4 @@
-import { OverlayManager } from './overlay'; import { HierarchyManager, formatElementLabel } from './hierarchy'; import { AuraHarvester } from './harvester'; import { AuraSuggester, VariationDock } from './suggester'; import { CommandHistory } from './command'; import { ChangeLedgerModal } from './ledger'; import { FineTuneCustomizer, type StyleTuneUpdate } from './customizer'; import { AIService } from './ai'; import { AISettingsModal } from './ai-modal'; import { HelpModal } from './help-modal'; import { clampToViewport } from './draggable'; import { createKeybindingHandlers } from './main-keybindings'; import { renderDockHelper } from './main-dock'; import { commitStyleChange, applyPresetHelper, revertElementHelper, peekPresetHelper, unpeekPresetHelper } from './main-presets'; import { applyBridgePayloadHelper, applyColorSwatchHelper, applyTypographyUpdateHelper, revertTypographyHelper, clearTypographyBaseline, handleAISuggestionsHelper, loadWorkspaceMutationsHelper } from './main-actions'; import type { StylePreset, StylePatch, SavedPromptedStyle } from './types';
+import { OverlayManager } from './overlay'; import { HierarchyManager, formatElementLabel } from './hierarchy'; import { AuraHarvester } from './harvester'; import { AuraSuggester, VariationDock } from './suggester'; import { CommandHistory } from './command'; import { ChangeLedgerModal } from './ledger'; import { FineTuneCustomizer, type StyleTuneUpdate } from './customizer'; import { AIService } from './ai'; import { AISettingsModal } from './ai-modal'; import { HelpModal } from './help-modal'; import { clampToViewport } from './draggable'; import { createKeybindingHandlers } from './main-keybindings'; import { renderDockHelper } from './main-dock'; import { commitStyleChange, applyPresetHelper, revertElementHelper, peekPresetHelper, unpeekPresetHelper } from './main-presets'; import { applyBridgePayloadHelper, applyColorSwatchHelper, applyTypographyUpdateHelper, revertTypographyHelper, clearTypographyBaseline, handleAISuggestionsHelper, loadWorkspaceMutationsHelper } from './main-actions'; import { collectElementContext } from './element-context'; import type { StylePreset, StylePatch, SavedPromptedStyle } from './types';
 
 declare global {
   interface Window { __AURACSS_DEBUG__?: boolean; __AURACSS_INSTANCE__?: AuraCSSApp; }
@@ -96,6 +96,7 @@ export class AuraCSSApp {
       window.addEventListener('resize', this.handleScrollOrResize, { capture: true, passive: true, signal: sig });
       window.addEventListener('keydown', (e) => { try { this.keybindings.handleKeyDown(e); } catch (err) { this.error('handleKeyDown', err); } }, { capture: true, signal: sig });
       window.addEventListener('keyup', (e) => { try { this.keybindings.handleKeyUp(e); } catch (err) { this.error('handleKeyUp', err); } }, { capture: true, signal: sig });
+      window.addEventListener('pagehide', () => this.aiService.notifyActiveElement(null), { signal: sig });
 
       this.aiService.subscribeBridge((p) => {
         if (!this.isActive || (!this.lockedElement && !p.selector)) return;
@@ -157,7 +158,7 @@ export class AuraCSSApp {
 
   private handleMouseOver = (e: MouseEvent): void => { try { if (!this.lockedElement) { const t = this.overlay.resolveHostElement(e); t ? this.overlay.updateHighlight(t, false) : this.overlay.clear(); } } catch (err) { this.error('handleMouseOver', err); } };
   private handleClick = (e: MouseEvent): void => { try { this.helpModal.hideToast(); const t = this.overlay.resolveHostElement(e); if (!t) return; e.preventDefault(); e.stopPropagation(); if ((e.ctrlKey || e.metaKey) && this.lockedElement === t) { this.unlockElement(); return; } if (this.lockedElement !== t) this.lockElement(t); } catch (err) { this.error('handleClick', err); } };
-  private handleScrollOrResize = (): void => { try { if (this.lockedElement?.isConnected) { this.overlay.updateHighlight(this.lockedElement, true); const f = this.variationDock.dodgeTarget(this.lockedElement); this.hierarchy.dodgeTarget(this.lockedElement, f, this.variationDock.getDockRect()); } if (this.controlsStack) clampToViewport(this.controlsStack); } catch (err) { this.error('handleScrollOrResize', err); } };
+  private handleScrollOrResize = (): void => { try { if (this.lockedElement && !this.lockedElement.isConnected) { this.unlockElement(); return; } if (this.lockedElement?.isConnected) { this.overlay.updateHighlight(this.lockedElement, true); const f = this.variationDock.dodgeTarget(this.lockedElement); this.hierarchy.dodgeTarget(this.lockedElement, f, this.variationDock.getDockRect()); } if (this.controlsStack) clampToViewport(this.controlsStack); } catch (err) { this.error('handleScrollOrResize', err); } };
 
   private keybindings = createKeybindingHandlers({
     getLockedElement: () => this.lockedElement, getIsComparing: () => this.isComparing,
@@ -193,8 +194,7 @@ export class AuraCSSApp {
     const patch = this.stylePatches.get(el);
     const lastPrompt = (this.savedPromptedStyles.get(el) || [])[0]?.name;
     this.aiService.notifyActiveElement({
-      tag: el.tagName.toLowerCase(), selector: formatElementLabel(el), htmlSnippet: el.outerHTML.slice(0, 200),
-      siteTokens: this.harvester.harvest(),
+      ...collectElementContext(el), selector: formatElementLabel(el), siteTokens: this.harvester.harvest(),
       currentMutations: patch ? { appliedCssText: patch.appliedCssText, tailwindClasses: patch.tailwindClasses, lastPrompt } : undefined,
     });
     this.log('Locked:', el);

@@ -1,7 +1,7 @@
 // src/bridge.ts
 import http from "http";
-import fs2 from "fs";
-import path2 from "path";
+import fs3 from "fs";
+import path3 from "path";
 
 // src/bridge-presets.ts
 function getAiVariationCyclePresets(cycleIndex, isAction) {
@@ -363,10 +363,13 @@ Rules:
 4. Ensure WCAG AA accessibility (contrast ratio >= 4.5:1) \u2013 auto-correct text/background pairs that fail contrast.
 5. Adapt styling to element type: buttons get interactive states and shadows; cards get layered shadows and padding; headings get tight tracking and bold weights.
 6. Provide a concise 1-sentence description in explanation.`;
-    const userContent = `Target Element: <${context.tag}>
+    const userContent = `Target Element: <${context.tag}> (${context.role || "element"})
 HTML Snippet: ${context.htmlSnippet || `<${context.tag}></${context.tag}>`}
 Inner Text: ${context.innerText || "None"}
+Size: ${context.rect ? `${context.rect.width}x${context.rect.height}px` : "unknown"}
 Parent Layout: ${context.parentLayout || "normal flow"}
+Contents: ${context.childSummary || "unknown"}
+Surface Background: ${context.effectiveBackground ? `${context.effectiveBackground.color} (${context.effectiveBackground.isDark ? "dark surface" : "light surface"})` : "unknown"}
 Computed Styles: ${JSON.stringify(context.computedStyles || {})}
 Site Theme Tokens: ${JSON.stringify(context.siteTokens || {})}
 
@@ -430,8 +433,95 @@ ${userContent}` }] }],
 
 // src/bridge-mcp.ts
 import readline from "readline";
+import fs2 from "fs";
+import path2 from "path";
+
+// src/bridge-security.ts
 import fs from "fs";
 import path from "path";
+function isValidLocalHost(host) {
+  if (!host) return false;
+  const h = host.toLowerCase().split(":")[0];
+  return h === "127.0.0.1" || h === "localhost" || h === "[::1]";
+}
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  try {
+    if (origin.startsWith("chrome-extension://") || origin.startsWith("moz-extension://")) {
+      return /^[\w-]+:\/\/[a-z0-9_-]+$/i.test(origin);
+    }
+    const parsed = new URL(origin);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+    const h = parsed.hostname.toLowerCase();
+    return h === "127.0.0.1" || h === "localhost" || h === "[::1]" || h === "::1";
+  } catch {
+    return false;
+  }
+}
+function getCorsHeaders(origin) {
+  const headers = {
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Private-Network": "true",
+    Vary: "Origin"
+  };
+  if (origin && isAllowedOrigin(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
+}
+function resolveRealAncestor(targetPath) {
+  let curr = path.dirname(targetPath);
+  const tail = [path.basename(targetPath)];
+  while (!fs.existsSync(curr)) {
+    const parent = path.dirname(curr);
+    if (parent === curr) break;
+    tail.unshift(path.basename(curr));
+    curr = parent;
+  }
+  const realBase = fs.existsSync(curr) ? fs.realpathSync(curr) : curr;
+  return path.join(realBase, ...tail);
+}
+function resolveSafeCssPath(root, filePath) {
+  const realRoot = fs.existsSync(root) ? fs.realpathSync(root) : path.resolve(root);
+  const candidate = path.resolve(realRoot, filePath || "auracss-mutations.css");
+  const rel = path.relative(realRoot, candidate);
+  if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) {
+    throw new Error("Path traversal forbidden: target must reside within workspace");
+  }
+  if (!candidate.toLowerCase().endsWith(".css")) {
+    throw new Error("Security policy violation: only .css files may be committed to source");
+  }
+  if (/(^|[/\\])\./.test(rel) || rel.split(/[/\\]/).includes("node_modules")) {
+    throw new Error("Security policy violation: hidden or system directory modification forbidden");
+  }
+  const realCandidate = resolveRealAncestor(candidate);
+  const realRel = path.relative(realRoot, realCandidate);
+  if (!realRel || realRel.startsWith("..") || path.isAbsolute(realRel)) {
+    throw new Error("Path traversal forbidden: symlink escape detected");
+  }
+  return candidate;
+}
+var rateBuckets = /* @__PURE__ */ new Map();
+function checkRateLimit(key, maxPerMin = 60) {
+  const now = Date.now();
+  const entry = rateBuckets.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateBuckets.set(key, { count: 1, resetAt: now + 6e4 });
+    return true;
+  }
+  if (entry.count >= maxPerMin) return false;
+  entry.count += 1;
+  return true;
+}
+
+// src/style-mutator.ts
+function sanitizeCssText(css) {
+  if (!css || typeof css !== "string") return "";
+  return css.replace(/@import\b[^;]*;?/gi, "").replace(/expression\s*\([^)]*\)/gi, "").replace(/-moz-binding\s*:[^;]*;?/gi, "").replace(/javascript\s*:/gi, "").replace(/url\s*\(\s*(['"]?)\s*(?:https?:|\/\/|data:text\/html|vbscript:)[^)]*\)/gi, "none");
+}
+
+// src/bridge-mcp.ts
 function startMcpStdio(port, getActiveElement2, broadcastSSE2, getWorkspaceRoot2 = () => process.cwd()) {
   const rl = readline.createInterface({ input: process.stdin, terminal: false });
   const shutdown = () => {
@@ -550,10 +640,18 @@ function startMcpStdio(port, getActiveElement2, broadcastSSE2, getWorkspaceRoot2
               } catch {
               }
             }
-            let text = el ? `Active Element: <${el.tag}>
-Selector: ${el.selector || el.tag}
-Snippet: ${el.htmlSnippet}
-Tokens: ${JSON.stringify(el.siteTokens || {})}` : "\u26A0\uFE0F AuraCSS is turned OFF or no element is currently selected in your browser. Please toggle AuraCSS to ON and click an element to select it first.";
+            let text = el ? [
+              `Active Element: <${el.tag}> (${el.role || "element"})`,
+              `Selector: ${el.selector || el.tag}`,
+              el.innerText ? `Visible Text: "${el.innerText}"` : null,
+              el.rect ? `Size: ${el.rect.width}x${el.rect.height}px` : null,
+              el.parentLayout ? `Parent Layout: ${el.parentLayout}` : null,
+              el.childSummary ? `Contents: ${el.childSummary}` : null,
+              el.effectiveBackground ? `Surface Background: ${el.effectiveBackground.color} (${el.effectiveBackground.isDark ? "dark surface" : "light surface"})` : null,
+              el.computedStyles ? `Current Computed Styles: ${JSON.stringify(el.computedStyles)}` : null,
+              `Site Tokens: ${JSON.stringify(el.siteTokens || {})}`,
+              `HTML Snippet: ${el.htmlSnippet}`
+            ].filter(Boolean).join("\n") : "\u26A0\uFE0F AuraCSS is turned OFF or no element is currently selected in your browser. Please toggle AuraCSS to ON and click an element to select it first.";
             if (el?.currentMutations) {
               text += `
 Prior Applied Mutations:
@@ -615,16 +713,21 @@ ${args.cssText}${args.activeState ? `
           return;
         }
         if (p.name === "auracss_commit_to_source") {
-          const args = p.arguments;
-          const root = getWorkspaceRoot2();
-          const safePath = path.resolve(root, args.filePath);
-          fs.mkdirSync(path.dirname(safePath), { recursive: true });
-          const header = `/* === AuraCSS Mutated Styles (${(/* @__PURE__ */ new Date()).toISOString()}) === */
+          try {
+            const args = p.arguments;
+            const root = getWorkspaceRoot2();
+            const safePath = resolveSafeCssPath(root, args.filePath || "auracss-mutations.css");
+            const safeCss = sanitizeCssText(args.cssText || "");
+            fs2.mkdirSync(path2.dirname(safePath), { recursive: true });
+            const header = `/* === AuraCSS Mutated Styles (${(/* @__PURE__ */ new Date()).toISOString()}) === */
 `;
-          fs.writeFileSync(safePath, `${header}${args.cssText}
+            fs2.writeFileSync(safePath, `${header}${safeCss}
 `);
-          const text = `Successfully committed styles to ${safePath}`;
-          process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: { content: [{ type: "text", text }] } }) + "\n");
+            const text = `Successfully committed styles to ${safePath}`;
+            process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result: { content: [{ type: "text", text }] } }) + "\n");
+          } catch (err) {
+            process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, error: { code: -32602, message: String(err) } }) + "\n");
+          }
           return;
         }
         process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: msg.id, error: { code: -32601, message: `Tool not found: ${p.name}` } }) + "\n");
@@ -674,28 +777,17 @@ function gracefulShutdown(server, callback) {
   sseClients.clear();
   server.close(callback);
 }
-var CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Private-Network": "true"
-};
-var sendJson = (res, code, data) => {
-  res.writeHead(code, { ...CORS_HEADERS, "Content-Type": "application/json" });
+var sendJson = (res, code, data, origin) => {
+  res.writeHead(code, { ...getCorsHeaders(origin), "Content-Type": "application/json" });
   res.end(JSON.stringify(data));
 };
 function getWorkspaceRoot() {
   const env = process.env.AURACSS_WORKSPACE_ROOT;
-  if (env && fs2.existsSync(env)) return env;
-  if (fs2.existsSync(path2.resolve(process.cwd(), "package.json"))) return process.cwd();
-  const scriptDir = typeof __dirname !== "undefined" ? __dirname : path2.dirname(process.argv[1] || "");
-  const parentDir = path2.resolve(scriptDir, "..");
-  return fs2.existsSync(path2.resolve(parentDir, "package.json")) ? parentDir : process.cwd();
-}
-function isValidLocalHost(host) {
-  if (!host) return false;
-  const h = host.toLowerCase().split(":")[0];
-  return h === "127.0.0.1" || h === "localhost" || h === "[::1]";
+  if (env && fs3.existsSync(env)) return env;
+  if (fs3.existsSync(path3.resolve(process.cwd(), "package.json"))) return process.cwd();
+  const scriptDir = typeof __dirname !== "undefined" ? __dirname : path3.dirname(process.argv[1] || "");
+  const parentDir = path3.resolve(scriptDir, "..");
+  return fs3.existsSync(path3.resolve(parentDir, "package.json")) ? parentDir : process.cwd();
 }
 var MAX_PAYLOAD_BYTES = 1024 * 1024;
 function readBody(req) {
@@ -716,13 +808,18 @@ function readBody(req) {
 }
 function createBridgeServer(port = 4999) {
   const server = http.createServer(async (req, res) => {
+    const origin = typeof req.headers.origin === "string" ? req.headers.origin : void 0;
     if (!isValidLocalHost(req.headers.host)) {
       sendJson(res, 403, { error: "Forbidden: Invalid Host header (DNS rebinding rejected)" });
       return;
     }
+    if (!isAllowedOrigin(origin)) {
+      sendJson(res, 403, { error: "Forbidden: Untrusted Origin rejected" });
+      return;
+    }
     const url = new URL(req.url || "/", `http://127.0.0.1:${port}`);
     if (req.method === "OPTIONS") {
-      res.writeHead(204, CORS_HEADERS);
+      res.writeHead(204, getCorsHeaders(origin));
       res.end();
       return;
     }
@@ -734,7 +831,7 @@ function createBridgeServer(port = 4999) {
         hasActiveElement: Boolean(activeElement),
         activeElement,
         hasGemini: Boolean(process.env.GEMINI_API_KEY)
-      });
+      }, origin);
       return;
     }
     if (url.pathname === "/api/active-element" && req.method === "POST") {
@@ -743,12 +840,16 @@ function createBridgeServer(port = 4999) {
         if (body?.tag && !body.clear) {
           activeElement = {
             tag: body.tag,
+            role: body.role,
             selector: body.selector,
             htmlSnippet: body.htmlSnippet || "",
             innerText: body.innerText,
+            rect: body.rect,
             computedStyles: body.computedStyles,
             siteTokens: body.siteTokens,
             parentLayout: body.parentLayout,
+            effectiveBackground: body.effectiveBackground,
+            childSummary: body.childSummary,
             currentMutations: body.currentMutations,
             updatedAt: Date.now()
           };
@@ -756,15 +857,15 @@ function createBridgeServer(port = 4999) {
           activeElement = null;
         }
         broadcastSSE({ type: "active_element", payload: activeElement });
-        sendJson(res, 200, { success: true, activeElement });
+        sendJson(res, 200, { success: true, activeElement }, origin);
       } catch (err) {
-        sendJson(res, 400, { error: String(err) });
+        sendJson(res, 400, { error: String(err) }, origin);
       }
       return;
     }
     if (url.pathname === "/api/events" && req.method === "GET") {
       res.writeHead(200, {
-        ...CORS_HEADERS,
+        ...getCorsHeaders(origin),
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive"
@@ -775,6 +876,10 @@ function createBridgeServer(port = 4999) {
       return;
     }
     if (url.pathname === "/api/synthesize" && req.method === "POST") {
+      if (!checkRateLimit(req.socket.remoteAddress || "loopback", 60)) {
+        sendJson(res, 429, { error: "Rate limit exceeded: max 60 synthesize requests per minute" }, origin);
+        return;
+      }
       try {
         const body = JSON.parse(await readBody(req));
         const geminiKey = process.env.GEMINI_API_KEY;
@@ -789,9 +894,9 @@ function createBridgeServer(port = 4999) {
             body.setIndex
           );
         }
-        sendJson(res, 200, response);
+        sendJson(res, 200, response, origin);
       } catch (err) {
-        sendJson(res, 500, { error: String(err) });
+        sendJson(res, 500, { error: String(err) }, origin);
       }
       return;
     }
@@ -801,7 +906,7 @@ function createBridgeServer(port = 4999) {
           sendJson(res, 400, {
             success: false,
             reminder: "\u26A0\uFE0F Cannot apply styles: AuraCSS is turned OFF or no element is currently selected in your browser. Please toggle AuraCSS to ON and click an element to select it first."
-          });
+          }, origin);
           return;
         }
         const body = JSON.parse(await readBody(req));
@@ -821,36 +926,36 @@ function createBridgeServer(port = 4999) {
             selector: body.selector
           }
         });
-        sendJson(res, 200, { success: true, broadcastCount: sseClients.size });
+        sendJson(res, 200, { success: true, broadcastCount: sseClients.size }, origin);
       } catch (err) {
-        sendJson(res, 400, { error: String(err) });
+        sendJson(res, 400, { error: String(err) }, origin);
       }
       return;
     }
     if (url.pathname === "/api/download" && req.method === "GET") {
       try {
         const root = getWorkspaceRoot();
-        const safePath = path2.resolve(root, "auracss-mutations.css");
-        const cssText = url.searchParams.get("css") || (fs2.existsSync(safePath) ? fs2.readFileSync(safePath, "utf8") : "/* AuraCSS */\n");
+        const safePath = resolveSafeCssPath(root, "auracss-mutations.css");
+        const cssText = url.searchParams.get("css") || (fs3.existsSync(safePath) ? fs3.readFileSync(safePath, "utf8") : "/* AuraCSS */\n");
         res.writeHead(200, {
-          ...CORS_HEADERS,
+          ...getCorsHeaders(origin),
           "Content-Type": "text/css; charset=utf-8",
           "Content-Disposition": 'attachment; filename="auracss-mutations.css"'
         });
         res.end(cssText);
       } catch (err) {
-        sendJson(res, 500, { error: String(err) });
+        sendJson(res, 500, { error: String(err) }, origin);
       }
       return;
     }
     if (url.pathname === "/api/mutations" && req.method === "GET") {
       try {
         const root = getWorkspaceRoot();
-        const safePath = path2.resolve(root, "auracss-mutations.css");
-        const cssText = fs2.existsSync(safePath) ? fs2.readFileSync(safePath, "utf8") : "";
-        sendJson(res, 200, { success: true, cssText, filePath: safePath });
+        const safePath = resolveSafeCssPath(root, "auracss-mutations.css");
+        const cssText = fs3.existsSync(safePath) ? fs3.readFileSync(safePath, "utf8") : "";
+        sendJson(res, 200, { success: true, cssText, filePath: safePath }, origin);
       } catch (err) {
-        sendJson(res, 500, { error: String(err) });
+        sendJson(res, 500, { error: String(err) }, origin);
       }
       return;
     }
@@ -858,25 +963,16 @@ function createBridgeServer(port = 4999) {
       try {
         const body = JSON.parse(await readBody(req));
         const root = getWorkspaceRoot();
-        const safePath = path2.resolve(root, body.filePath || "auracss-mutations.css");
-        const rel = path2.relative(root, safePath);
-        if (rel.startsWith("..") || path2.isAbsolute(rel)) {
-          throw new Error("Path traversal forbidden: target must reside within workspace");
-        }
-        if (!safePath.toLowerCase().endsWith(".css")) {
-          throw new Error("Security policy violation: only .css files may be committed to source");
-        }
-        if (/(^|[/\\])\./.test(rel) || rel.includes("node_modules")) {
-          throw new Error("Security policy violation: hidden or system directory modification forbidden");
-        }
-        fs2.mkdirSync(path2.dirname(safePath), { recursive: true });
+        const safePath = resolveSafeCssPath(root, body.filePath || "auracss-mutations.css");
+        const safeCss = sanitizeCssText(body.cssText || "");
+        fs3.mkdirSync(path3.dirname(safePath), { recursive: true });
         const header = `/* === AuraCSS Mutated Styles (${(/* @__PURE__ */ new Date()).toISOString()}) === */
 `;
-        fs2.writeFileSync(safePath, `${header}${body.cssText}
+        fs3.writeFileSync(safePath, `${header}${safeCss}
 `);
-        sendJson(res, 200, { success: true, filePath: safePath });
+        sendJson(res, 200, { success: true, filePath: safePath }, origin);
       } catch (err) {
-        sendJson(res, 400, { error: String(err) });
+        sendJson(res, 400, { error: String(err) }, origin);
       }
       return;
     }

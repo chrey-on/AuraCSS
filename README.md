@@ -1,4 +1,8 @@
-# AuraCSS ✦
+<p align="center">
+  <img src="icons/icon-128.png" alt="AuraCSS Logo" width="96" height="96" />
+</p>
+
+<h1 align="center">AuraCSS</h1>
 
 > Zero-dependency, in-browser visual design assistant, non-destructive DOM mutation engine, and universal Model Context Protocol (MCP) server.
 

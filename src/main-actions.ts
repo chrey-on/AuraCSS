@@ -6,7 +6,8 @@ import type { AuraHarvester } from './harvester';
 import type { PresetContext } from './main-presets';
 import { applyPresetHelper } from './main-presets';
 import { formatElementLabel } from './hierarchy';
-import { computeSwatchMutation, computeTypographyTailwind, injectLiveRules } from './style-mutator';
+import { computeSwatchMutation, computeTypographyTailwind, injectLiveRules, sanitizeCssText } from './style-mutator';
+import { collectElementContext } from './element-context';
 import { syncCommittedStyles } from './ledger-actions';
 import { getAiVariationCyclePresets, isActionElement } from './bridge-presets';
 
@@ -101,8 +102,16 @@ export function applyBridgePayloadHelper(
     presetContext: PresetContext;
   }
 ): void {
-  const target = ctx.lockedElement || (p.selector ? (document.querySelector(p.selector) as HTMLElement | null) : null);
-  if (target && target instanceof HTMLElement) {
+  let target: HTMLElement | null = ctx.lockedElement?.isConnected ? ctx.lockedElement : null;
+  if (!target && p.selector) {
+    try {
+      const found = document.querySelector(p.selector);
+      if (found instanceof HTMLElement && found.isConnected) target = found;
+    } catch {
+      target = null;
+    }
+  }
+  if (target) {
     if (!ctx.lockedElement) ctx.lockElement(target);
 
     // If replace mode (default), reset inline styles back to original before applying
@@ -114,10 +123,11 @@ export function applyBridgePayloadHelper(
     }
 
     const sel = formatElementLabel(target);
+    const safeCssText = sanitizeCssText(p.cssText || '');
     injectLiveRules(sel, p);
     applyInteractionHelper(target, p.interaction);
 
-    const style = createBridgeStyle(p);
+    const style = createBridgeStyle({ ...p, cssText: safeCssText });
     recordSavedPromptedStyle(ctx.savedPromptedStyles, target, style);
     applyPresetHelper(ctx.presetContext, target, style);
   }
@@ -199,9 +209,7 @@ export async function handleAISuggestionsHelper(
   try {
     const presets = await ctx.aiService.generateAISuggestions(
       {
-        tag: el.tagName.toLowerCase(),
-        htmlSnippet: el.outerHTML.slice(0, 200),
-        computedStyles: { color: el.style.color, backgroundColor: el.style.backgroundColor },
+        ...collectElementContext(el),
         siteTokens: ctx.harvester.harvest(),
       },
       undefined,

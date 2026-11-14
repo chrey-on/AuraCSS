@@ -58,29 +58,63 @@ export interface LiveRulePayload {
   activeState?: string;
 }
 
+export function sanitizeCssText(css: string): string {
+  if (!css || typeof css !== 'string') return '';
+  return css
+    .replace(/@import\b[^;]*;?/gi, '')
+    .replace(/expression\s*\([^)]*\)/gi, '')
+    .replace(/-moz-binding\s*:[^;]*;?/gi, '')
+    .replace(/javascript\s*:/gi, '')
+    .replace(/url\s*\(\s*(['"]?)\s*(?:https?:|\/\/|data:text\/html|vbscript:)[^)]*\)/gi, 'none');
+}
+
+export function sanitizeCssSelector(selector: string): string {
+  return selector.replace(/[{};<>]/g, '').trim() || '*';
+}
+
+const liveRulesBySelector = new Map<string, string>();
+
+export function clearLiveRules(selector?: string): void {
+  if (selector) {
+    liveRulesBySelector.delete(sanitizeCssSelector(selector));
+  } else {
+    liveRulesBySelector.clear();
+  }
+  if (typeof document === 'undefined') return;
+  const styleEl = document.getElementById('auracss-live-rules') as HTMLStyleElement | null;
+  if (styleEl) styleEl.textContent = Array.from(liveRulesBySelector.values()).join('\n');
+}
+
 export function injectLiveRules(selector: string, p: LiveRulePayload): void {
   if (typeof document === 'undefined') return;
   let styleEl = document.getElementById('auracss-live-rules') as HTMLStyleElement | null;
   if (!styleEl) {
+    liveRulesBySelector.clear();
     styleEl = document.createElement('style');
     styleEl.id = 'auracss-live-rules';
     document.head.appendChild(styleEl);
   }
+  const safeSel = sanitizeCssSelector(selector);
   let rules = '';
   if (p.keyframes) {
-    rules += `\n${p.keyframes}\n`;
+    rules += `\n${sanitizeCssText(p.keyframes)}\n`;
   }
   if (p.hoverState) {
-    rules += `\n${selector}:hover { ${p.hoverState} }\n`;
+    rules += `\n${safeSel}:hover { ${sanitizeCssText(p.hoverState)} }\n`;
   }
   if (p.activeState) {
-    const activeCss = p.activeState
+    const activeCss = sanitizeCssText(p.activeState)
       .split(';')
       .map((s) => s.trim())
       .filter(Boolean)
       .map((s) => (s.includes('!important') ? s : `${s} !important`))
       .join('; ');
-    rules += `\n${selector}:active { ${activeCss}; }\n`;
+    rules += `\n${safeSel}:active { ${activeCss}; }\n`;
   }
-  styleEl.textContent = rules;
+  if (rules.trim()) {
+    liveRulesBySelector.set(safeSel, rules);
+  } else {
+    liveRulesBySelector.delete(safeSel);
+  }
+  styleEl.textContent = Array.from(liveRulesBySelector.values()).join('\n');
 }

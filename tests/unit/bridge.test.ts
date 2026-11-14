@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import http from 'http';
 import { createBridgeServer, setActiveElement, getActiveElement } from '../../src/bridge';
+import { resolveSafeCssPath } from '../../src/bridge-security';
+import { sanitizeCssText } from '../../src/style-mutator';
 
 describe('AuraCSS Bridge & MCP Server', () => {
   let server: http.Server;
@@ -19,14 +21,34 @@ describe('AuraCSS Bridge & MCP Server', () => {
     });
   });
 
-  it('responds with ready status and CORS on /health', async () => {
-    const res = await fetch(`http://127.0.0.1:${testPort}/health`);
-    expect(res.status).toBe(200);
-    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+  it('responds with ready status and strict Origin allowlisting on /health', async () => {
+    const reqWithOrigin = (origin: string) =>
+      new Promise<{ status: number; allowOrigin?: string; body: string }>((resolve, reject) => {
+        const req = http.request(
+          { hostname: '127.0.0.1', port: testPort, path: '/health', method: 'GET', headers: { Origin: origin } },
+          (res) => {
+            let data = '';
+            res.on('data', (c) => { data += c; });
+            res.on('end', () => resolve({
+              status: res.statusCode || 0,
+              allowOrigin: res.headers['access-control-allow-origin'] as string | undefined,
+              body: data,
+            }));
+          }
+        );
+        req.on('error', reject);
+        req.end();
+      });
 
-    const json = (await res.json()) as { status: string; mcp: boolean };
+    const ok = await reqWithOrigin('http://localhost:5173');
+    expect(ok.status).toBe(200);
+    expect(ok.allowOrigin).toBe('http://localhost:5173');
+    const json = JSON.parse(ok.body) as { status: string; mcp: boolean };
     expect(json.status).toBe('ready');
     expect(json.mcp).toBe(true);
+
+    const evil = await reqWithOrigin('https://evil-attacker.com');
+    expect(evil.status).toBe(403);
   });
 
   it('receives active element updates on /api/active-element', async () => {
@@ -208,5 +230,17 @@ describe('AuraCSS Bridge & MCP Server', () => {
     expect(res2.status).toBe(400);
     const json2 = (await res2.json()) as { error: string };
     expect(json2.error).toContain('Path traversal forbidden');
+
+    // Shared MCP/HTTP path guard also rejects hidden dirs
+    expect(() => resolveSafeCssPath(process.cwd(), '.git/evil.css')).toThrow(/hidden or system directory/);
+  });
+
+  it('sanitizes dangerous CSS constructs (@import, expression, javascript:, external url)', () => {
+    const dirty = `@import url("https://evil.com/x.css"); color: red; background: url("https://evil.com/leak?a=1"); width: expression(alert(1));`;
+    const clean = sanitizeCssText(dirty);
+    expect(clean).not.toContain('@import');
+    expect(clean).not.toContain('expression');
+    expect(clean).not.toContain('https://evil.com');
+    expect(clean).toContain('color: red;');
   });
 });
