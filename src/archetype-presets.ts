@@ -2,6 +2,7 @@ import type { StylePreset } from './types';
 import type { ElementArchetype } from './element-classifier';
 import { getAiVariationCyclePresets } from './bridge-presets';
 import { getIconVariationCyclePresets } from './icon-presets';
+import { getStructuralArchetypePresets } from './shape-presets';
 
 type PresetTuple = [id: string, name: string, desc: string, css: string, tw: string, hover?: string];
 
@@ -126,6 +127,9 @@ const PROSE_SETS: PresetTuple[][] = [
 export function getArchetypeVariationPresets(archetype: ElementArchetype, cycleIndex: number): StylePreset[] {
   const cycle = Math.abs(Number(cycleIndex) || 0) % 3;
   if (archetype === 'icon-emoji') return getIconVariationCyclePresets(cycle);
+  if (archetype === 'divider-line' || archetype === 'scrollbar-track' || archetype === 'shape-graphic') {
+    return getStructuralArchetypePresets(archetype, cycle);
+  }
   if (archetype === 'button-action') return getAiVariationCyclePresets(cycle, true);
   if (archetype === 'card-container') return getAiVariationCyclePresets(cycle, false);
   if (archetype === 'photo-media') return toPresets(PHOTO_SETS[cycle] ?? PHOTO_SETS[0]!);

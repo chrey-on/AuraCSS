@@ -2,8 +2,9 @@ import type { StylePreset, StylePatch } from './types';
 import type { CommandHistory } from './command';
 import type { VariationDock } from './suggester';
 import type { OverlayManager } from './overlay';
-import { injectLiveRules } from './style-mutator';
+import { injectLiveRules, clearLiveRules, type LiveRulePayload } from './style-mutator';
 import { getUniqueSelector } from './element-context';
+import { classifyElement } from './element-classifier';
 
 export interface PresetContext {
   stylePatches: WeakMap<HTMLElement, StylePatch>;
@@ -17,10 +18,43 @@ export interface PresetContext {
 
 let activePeekElement: HTMLElement | null = null;
 let activePeekOriginalCss: string | null = null;
+const committedLivePayloads = new WeakMap<HTMLElement, LiveRulePayload>();
 
 export function clearActivePeek(): void {
   activePeekElement = null;
   activePeekOriginalCss = null;
+}
+
+function mergeWithOriginalInlineCss(originalCss: string, presetCss: string): string {
+  const base = (originalCss || '').trim().replace(/;+\s*$/, '');
+  if (!base) return presetCss;
+  return `${base}; ${presetCss}`;
+}
+
+function resolveElementAndLivePayload(
+  el: HTMLElement,
+  preset: StylePreset
+): { inlineCss: string; livePayload: LiveRulePayload } {
+  const isScrollbarWrapper = el.children.length > 0 && classifyElement(el) === 'scrollbar-track';
+  if (isScrollbarWrapper) {
+    return {
+      inlineCss: `--auracss-thumb-preset: ${preset.id}; scrollbar-width: thin;`,
+      livePayload: {
+        keyframes: preset.keyframes,
+        hoverState: preset.hoverState,
+        activeState: preset.activeState,
+        childState: preset.cssText,
+      },
+    };
+  }
+  return {
+    inlineCss: preset.cssText,
+    livePayload: {
+      keyframes: preset.keyframes,
+      hoverState: preset.hoverState,
+      activeState: preset.activeState,
+    },
+  };
 }
 
 export function peekPresetHelper(
@@ -30,13 +64,15 @@ export function peekPresetHelper(
   isComparing: boolean
 ): void {
   if (!el?.isConnected || isComparing) return;
-  if (!activePeekElement) {
+  if (!activePeekElement || activePeekElement !== el) {
     activePeekElement = el;
     activePeekOriginalCss = el.style.cssText;
   }
-  el.style.cssText = preset.cssText;
-  if (preset.activeState || preset.hoverState || preset.keyframes) {
-    injectLiveRules(getUniqueSelector(el), preset);
+  const baseOriginal = ctx.stylePatches.get(el)?.originalCssText ?? activePeekOriginalCss ?? '';
+  const { inlineCss, livePayload } = resolveElementAndLivePayload(el, preset);
+  el.style.cssText = mergeWithOriginalInlineCss(baseOriginal, inlineCss);
+  if (livePayload.activeState || livePayload.hoverState || livePayload.keyframes || livePayload.childState) {
+    injectLiveRules(getUniqueSelector(el), livePayload);
   }
   ctx.overlay.updateHighlight(el, true);
 }
@@ -57,10 +93,12 @@ export function unpeekPresetHelper(
   }
   activePeekElement = null;
   activePeekOriginalCss = null;
-  if (patch) {
-    injectLiveRules(getUniqueSelector(el), {});
+  const sel = getUniqueSelector(el);
+  const committedLive = committedLivePayloads.get(el);
+  if (patch && committedLive) {
+    injectLiveRules(sel, committedLive);
   } else {
-    injectLiveRules('', {});
+    clearLiveRules(sel);
   }
   ctx.overlay.updateHighlight(el, true);
 }
@@ -94,17 +132,28 @@ export function applyPresetHelper(
   preset: StylePreset
 ): void {
   if (!el?.isConnected) return;
+  const truePrevCss =
+    activePeekElement === el && activePeekOriginalCss !== null
+      ? activePeekOriginalCss
+      : el.style.cssText;
   clearActivePeek();
   ctx.activePresetIdMap.set(el, preset.id);
   ctx.variationDock.setActivePresetId(preset.id);
-  if (preset.activeState || preset.hoverState || preset.keyframes) {
-    injectLiveRules(getUniqueSelector(el), preset);
+  const { inlineCss, livePayload } = resolveElementAndLivePayload(el, preset);
+  const sel = getUniqueSelector(el);
+  if (livePayload.activeState || livePayload.hoverState || livePayload.keyframes || livePayload.childState) {
+    committedLivePayloads.set(el, livePayload);
+    injectLiveRules(sel, livePayload);
+  } else {
+    committedLivePayloads.delete(el);
+    clearLiveRules(sel);
   }
   const current = ctx.stylePatches.get(el);
-  if (current && current.appliedCssText === preset.cssText) return;
-  const prevCss = el.style.cssText;
-  el.style.cssText = preset.cssText;
-  commitStyleChange(ctx, el, preset.cssText, preset.tailwindClasses, prevCss);
+  const baseOriginal = current?.originalCssText ?? truePrevCss;
+  const mergedCss = mergeWithOriginalInlineCss(baseOriginal, inlineCss);
+  if (current && current.appliedCssText === mergedCss) return;
+  el.style.cssText = mergedCss;
+  commitStyleChange(ctx, el, mergedCss, preset.tailwindClasses, truePrevCss);
 }
 
 export function applyIncrementalPresetHelper(
@@ -133,7 +182,9 @@ export function revertElementHelper(
   onFinishRevert: () => void
 ): void {
   clearActivePeek();
-  injectLiveRules('', {});
+  committedLivePayloads.delete(el);
+  clearLiveRules(getUniqueSelector(el));
+  clearLiveRules();
   const patch = ctx.stylePatches.get(el);
   if (!patch) return;
   el.style.cssText = patch.originalCssText;

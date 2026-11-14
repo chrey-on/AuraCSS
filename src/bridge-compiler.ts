@@ -77,14 +77,28 @@ export async function synthesizeWithLocalOrEnv(
   if (archetype === 'icon-emoji') {
     const glowHex = color ? color.hex : '#38bdf8';
     const cssText = p.includes('glow') || p.includes('pop') || p.includes('halo')
-      ? `filter: drop-shadow(0 0 10px ${glowHex}) brightness(1.12) saturate(1.25); transition: transform 0.2s ease, filter 0.2s ease;`
+      ? `color: ${glowHex}; filter: drop-shadow(0 0 10px ${glowHex}) brightness(1.12) saturate(1.4); transition: transform 0.2s ease, filter 0.2s ease;`
       : p.includes('mono') || p.includes('gray') || p.includes('dark')
       ? 'filter: grayscale(1) contrast(1.3); transition: filter 0.2s ease;'
-      : 'filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35)) saturate(1.2); transform: scale(1.08); transition: transform 0.2s ease;';
+      : `color: ${glowHex}; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35)) saturate(1.35); transform: scale(1.08); transition: transform 0.2s ease;`;
     return {
       cssText,
       tailwindClasses: 'drop-shadow-lg saturate-125 transition-transform',
       explanation: `Applied icon-aware filter & transform styling to <${tag}>`,
+    };
+  }
+  if (archetype === 'divider-line' || archetype === 'scrollbar-track' || archetype === 'shape-graphic') {
+    const hex = color ? color.hex : '#38bdf8';
+    const cssText =
+      archetype === 'divider-line'
+        ? `background: ${hex}; border: none; min-height: 2px; padding: 0; border-radius: 9999px; box-shadow: 0 0 10px ${hex}88; opacity: 1;`
+        : archetype === 'scrollbar-track'
+        ? `background: ${hex}; border-radius: 9999px; padding: 0; box-shadow: 0 0 10px ${hex}80; scrollbar-width: thin; scrollbar-color: ${hex} transparent;`
+        : `background: linear-gradient(135deg, ${hex} 0%, #6366f1 100%); border-radius: 9999px; box-shadow: 0 6px 18px ${hex}66;`;
+    return {
+      cssText,
+      tailwindClasses: 'rounded-full p-0 shadow-lg',
+      explanation: `Applied ${archetype} styling to <${tag}>`,
     };
   }
   if (archetype === 'photo-media') {

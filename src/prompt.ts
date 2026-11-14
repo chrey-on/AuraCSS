@@ -27,9 +27,25 @@ export function parseDesignPrompt(
   if (archetype === 'icon-emoji') {
     const glowHex = analysis.colorHex || '#38bdf8';
     cssText = analysis.isGlow || analysis.isPop
-      ? `filter: drop-shadow(0 0 10px ${glowHex}) brightness(1.12) saturate(1.25); transition: transform 0.2s ease, filter 0.2s ease;`
-      : `filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3)) saturate(1.2); transform: scale(1.08); transition: transform 0.2s ease;`;
+      ? `color: ${glowHex}; filter: drop-shadow(0 0 10px ${glowHex}) brightness(1.12) saturate(1.4); transition: transform 0.2s ease, filter 0.2s ease;`
+      : `color: ${glowHex}; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3)) saturate(1.35); transform: scale(1.08); transition: transform 0.2s ease;`;
     twClasses = 'drop-shadow-lg saturate-125 transition-transform';
+  } else if (archetype === 'divider-line') {
+    const lineHex = analysis.colorHex || '#38bdf8';
+    cssText = analysis.isGradient
+      ? `background: linear-gradient(90deg, transparent 0%, ${lineHex} 50%, transparent 100%); border: none; min-height: 2px; padding: 0; opacity: 1;`
+      : `background: ${lineHex}; border: none; min-height: 2px; padding: 0; border-radius: 9999px; box-shadow: 0 0 10px ${lineHex}88; opacity: 1;`;
+    twClasses = `bg-${analysis.twColor} border-0 h-0.5 p-0 rounded-full`;
+  } else if (archetype === 'scrollbar-track') {
+    const barHex = analysis.colorHex || '#6366f1';
+    cssText = `background: ${barHex}; border-radius: 9999px; padding: 0; box-shadow: 0 0 10px ${barHex}80; scrollbar-width: thin; scrollbar-color: ${barHex} transparent;`;
+    twClasses = `bg-${analysis.twColor} rounded-full p-0`;
+  } else if (archetype === 'shape-graphic') {
+    const shapeHex = analysis.colorHex || '#6366f1';
+    cssText = analysis.hasBorderIntent && !analysis.hasBgIntent
+      ? `background: transparent; border: 2px solid ${shapeHex}; border-radius: 9999px; box-shadow: 0 0 12px ${shapeHex}88;`
+      : `background: linear-gradient(135deg, ${shapeHex} 0%, #38bdf8 100%); border-radius: ${analysis.radius === '0px' ? '0px' : '9999px'}; box-shadow: 0 6px 18px ${shapeHex}66;`;
+    twClasses = `bg-${analysis.twColor} rounded-full shadow-lg`;
   } else if (archetype === 'photo-media') {
     cssText = `border-radius: ${analysis.radius === '0px' ? '0px' : '16px'}; object-fit: cover; filter: contrast(1.08) saturate(1.12); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);`;
     twClasses = `${analysis.twRadius} object-cover shadow-xl`;

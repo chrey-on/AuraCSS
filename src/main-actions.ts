@@ -6,7 +6,7 @@ import type { AuraHarvester } from './harvester';
 import type { PresetContext } from './main-presets';
 import { applyPresetHelper } from './main-presets';
 import { computeSwatchMutation, computeTypographyTailwind, injectLiveRules, sanitizeCssText } from './style-mutator';
-import { collectElementContext, getUniqueSelector } from './element-context';
+import { getUniqueSelector } from './element-context';
 import { syncCommittedStyles } from './ledger-actions';
 import { classifyElement } from './element-classifier';
 import { getArchetypeVariationPresets } from './archetype-presets';
@@ -206,20 +206,8 @@ export async function handleAISuggestionsHelper(
   const currentSet = ctx.variationCycleMap.get(el) ?? 0;
   const nextSet = (currentSet + 1) % 3;
   ctx.variationCycleMap.set(el, nextSet);
-  try {
-    const presets = await ctx.aiService.generateAISuggestions(
-      {
-        ...collectElementContext(el),
-        siteTokens: ctx.harvester.harvest(),
-      },
-      undefined,
-      nextSet
-    );
-    ctx.renderDock(el, presets, ctx.isModified, nextSet);
-  } catch {
-    const fallbackPresets = getArchetypeVariationPresets(classifyElement(el), nextSet);
-    ctx.renderDock(el, fallbackPresets, ctx.isModified, nextSet);
-  }
+  const presets = getArchetypeVariationPresets(classifyElement(el), nextSet);
+  ctx.renderDock(el, presets, ctx.isModified, nextSet);
 }
 
 export async function loadWorkspaceMutationsHelper(): Promise<void> {

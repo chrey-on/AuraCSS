@@ -56,6 +56,7 @@ export interface LiveRulePayload {
   keyframes?: string;
   hoverState?: string;
   activeState?: string;
+  childState?: string;
 }
 
 export function sanitizeCssText(css: string): string {
@@ -110,6 +111,15 @@ export function injectLiveRules(selector: string, p: LiveRulePayload): void {
       .map((s) => (s.includes('!important') ? s : `${s} !important`))
       .join('; ');
     rules += `\n${safeSel}:active { ${activeCss}; }\n`;
+  }
+  if (p.childState) {
+    const childCss = sanitizeCssText(p.childState)
+      .split(';')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => (s.includes('!important') ? s : `${s} !important`))
+      .join('; ');
+    rules += `\n${safeSel} > *, ${safeSel} > * > * { ${childCss}; }\n`;
   }
   if (rules.trim()) {
     liveRulesBySelector.set(safeSel, rules);
