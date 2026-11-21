@@ -6,6 +6,9 @@
 
 > Zero-dependency, in-browser visual design assistant, non-destructive DOM mutation engine, and universal Model Context Protocol (MCP) server.
 
+🌐 **Official Website & Live Demo:** [https://chrey-on.github.io/AuraCSS/](https://chrey-on.github.io/AuraCSS/)
+
+[![Website](https://img.shields.io/badge/Website-Live%20Demo%20%26%20Install-brightgreen.svg)](https://chrey-on.github.io/AuraCSS/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-6.0-646CFF.svg)](https://vitejs.dev/)
 [![Playwright](https://img.shields.io/badge/Playwright-E2E%20Tested-green.svg)](https://playwright.dev/)
