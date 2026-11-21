@@ -10,6 +10,9 @@
     "bridge": "node dist/bridge.js",
     "mcp": "node dist/bridge.js --mcp",
     "preview": "vite preview",
+    "dev:website": "vite website",
+    "build:website": "vite build --config vite.config.website.ts",
+    "preview:website": "vite preview --config vite.config.website.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
