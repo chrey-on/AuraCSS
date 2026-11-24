@@ -265,6 +265,14 @@ function showToast(message = '✓ Copied to clipboard!') {
 }
 
 function setupCopyButtons() {
+  const heroCliBtn = document.getElementById('copy-hero-cli-btn');
+  if (heroCliBtn) {
+    heroCliBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText('npx -y auracss@latest --mcp');
+      showToast('✓ CLI command copied!');
+    });
+  }
+
   const mcpBtn = document.getElementById('copy-mcp-btn');
   if (mcpBtn) {
     mcpBtn.addEventListener('click', async () => {
@@ -325,7 +333,7 @@ function setupLiveDemo() {
 
       script.onload = () => {
         launchBtn.disabled = false;
-        launchBtn.innerHTML = '<span class="terminal-symbol">&gt;_</span> Toggle In-Page HUD';
+        launchBtn.textContent = 'Toggle In-Page HUD';
         updateStatus();
         showToast('✦ AuraCSS Engine Mounted (#auracss-root)');
       };
@@ -335,7 +343,7 @@ function setupLiveDemo() {
         fallbackScript.src = 'https://cdn.jsdelivr.net/gh/chrey-on/AuraCSS@main/dist/auracss.bundle.js';
         fallbackScript.onload = () => {
           launchBtn.disabled = false;
-          launchBtn.innerHTML = '<span class="terminal-symbol">&gt;_</span> Toggle In-Page HUD';
+          launchBtn.textContent = 'Toggle In-Page HUD';
           updateStatus();
         };
         document.body.appendChild(fallbackScript);
@@ -345,19 +353,21 @@ function setupLiveDemo() {
     } catch (err) {
       console.error('Failed to load AuraCSS bundle:', err);
       launchBtn.disabled = false;
-      launchBtn.innerHTML = '<span class="terminal-symbol">&gt;_</span> Activate In-Page Engine';
+      launchBtn.textContent = 'Activate In-Page Engine';
     }
   }
 
   function updateStatus() {
     if (window.__AURACSS_INSTANCE__) {
       liveIndicator.textContent = '● Engine Active (#auracss-root)';
-      liveIndicator.style.background = 'rgba(56, 189, 248, 0.15)';
-      liveIndicator.style.color = '#38bdf8';
+      liveIndicator.style.background = '#1f232e';
+      liveIndicator.style.borderColor = '#2c303b';
+      liveIndicator.style.color = '#61dafb';
     } else {
       liveIndicator.textContent = '● Standby (Press Alt+A)';
-      liveIndicator.style.background = 'rgba(16, 185, 129, 0.12)';
-      liveIndicator.style.color = '#10b981';
+      liveIndicator.style.background = '#1f232e';
+      liveIndicator.style.borderColor = '#2c303b';
+      liveIndicator.style.color = '#4bf3c8';
     }
   }
 

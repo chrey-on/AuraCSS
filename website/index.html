@@ -3,42 +3,46 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AuraCSS — In-Browser Visual Styling Co-Pilot & Universal MCP Server</title>
+  <title>AuraCSS — In-Browser Visual Styling Co-Pilot &amp; Universal MCP Server</title>
   <meta name="description" content="Zero-dependency, in-browser visual design assistant, non-destructive DOM mutation engine, and universal Model Context Protocol (MCP) server." />
-  <meta name="theme-color" content="#070a12" />
-  
+  <meta name="theme-color" content="#1f232e" />
+
   <!-- OpenGraph -->
-  <meta property="og:title" content="AuraCSS — In-Browser Visual Styling Co-Pilot & Universal MCP Server" />
+  <meta property="og:title" content="AuraCSS — In-Browser Visual Styling Co-Pilot &amp; Universal MCP Server" />
   <meta property="og:description" content="Inspect web elements, harvest site design tokens, synthesize aesthetic CSS/Tailwind variations, and execute real-time DOM mutations." />
   <meta property="og:type" content="website" />
-  
+
   <link rel="icon" type="image/png" href="./icon-128.png" />
+
+  <!-- Astro Style Reference Web Font Substitutes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&family=Space+Grotesk:wght@300;400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <!-- Precision Coordinate Grid Background -->
-  <div class="technical-grid-bg" aria-hidden="true"></div>
+  <!-- Single Purple-Magenta Hero Nebula Glow -->
+  <div class="hero-nebula-backdrop" aria-hidden="true"></div>
 
   <!-- Header Navigation -->
   <header class="site-header">
     <div class="nav-container">
       <a href="#" class="brand">
         <img src="./icon-128.png" alt="AuraCSS Logo" class="brand-logo" width="28" height="28" />
-        <span class="brand-name">AURA<span class="brand-accent">CSS</span></span>
-        <span class="version-tag">v0.1.0</span>
+        <span class="brand-name">AURACSS</span>
       </a>
-      
-      <nav class="nav-links">
+
+      <nav class="nav-links" aria-label="Primary Navigation">
         <a href="#comparison">Visual Diff</a>
         <a href="#playground">Sandbox</a>
         <a href="#install">Install</a>
         <a href="#architecture">Architecture</a>
         <a href="#mcp">MCP Inspector</a>
-        <a href="https://github.com/chrey-on/AuraCSS" target="_blank" rel="noopener noreferrer" class="nav-github-btn">
-          <svg class="gh-icon" viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true">
+        <a href="https://github.com/chrey-on/AuraCSS" target="_blank" rel="noopener noreferrer" class="nav-github-btn" aria-label="AuraCSS on GitHub">
+          <svg class="gh-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
           </svg>
-          <span>GitHub</span>
         </a>
       </nav>
     </div>
@@ -47,19 +51,14 @@
   <main>
     <!-- Hero Section -->
     <section class="hero-section">
-      <div class="technical-spec-bar">
-        <span class="spec-item"><span class="spec-k">SPEC:</span> W3C SHADOW-DOM-V1</span>
-        <span class="spec-divider">/</span>
-        <span class="spec-item"><span class="spec-k">PIPELINE:</span> FASTDOM 60FPS</span>
-        <span class="spec-divider">/</span>
-        <span class="spec-item"><span class="spec-k">WIRE:</span> MCP JSON-RPC 2.0</span>
-        <span class="spec-divider">/</span>
-        <span class="spec-item"><span class="spec-k">RUNTIME:</span> ZERO-DEPENDENCY</span>
+      <div class="version-badge">
+        <span class="version-dot" aria-hidden="true"></span>
+        <span>AuraCSS v0.1.0 &middot; Universal MCP Engine</span>
       </div>
 
       <h1 class="hero-title">
-        Non-Destructive Visual Co-Pilot &amp;<br>
-        <span class="text-glow">Universal MCP Engine</span>
+        Non-Destructive Visual Co-Pilot &amp;<br />
+        Universal MCP Engine
       </h1>
 
       <p class="hero-subtitle">
@@ -67,21 +66,33 @@
       </p>
 
       <div class="hero-actions">
-        <a href="#install" class="btn btn-primary">
-          <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 11.586V4a1 1 0 011-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" />
+        <a href="#install" class="btn btn-primary">Install Toolkit &rsaquo;</a>
+        <button id="launch-demo-btn" class="btn btn-secondary">Activate In-Page Engine</button>
+      </div>
+
+      <div class="hero-terminal-box" aria-label="CLI quick start command">
+        <code class="hero-terminal-code">npx -y auracss@latest --mcp</code>
+        <button class="copy-btn hero-copy-btn" id="copy-hero-cli-btn" aria-label="Copy CLI command">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
           </svg>
-          Install Toolkit
-        </a>
-        <button id="launch-demo-btn" class="btn btn-secondary">
-          <span class="terminal-symbol">&gt;_</span> Activate In-Page Engine
         </button>
+      </div>
+
+      <div class="compat-strip" aria-label="Compatible environments and standards">
+        <span class="compat-item">Antigravity</span>
+        <span class="compat-item">Cursor</span>
+        <span class="compat-item">Claude Code</span>
+        <span class="compat-item">Windsurf</span>
+        <span class="compat-item">Chrome MV3</span>
+        <span class="compat-item">Shadow DOM v1</span>
       </div>
     </section>
 
-    <!-- NEW SECTION 1: Interactive Before/After Split Comparison Slider -->
+    <!-- SECTION 1: Interactive Before/After Split Comparison Slider -->
     <section class="comparison-section" id="comparison">
-      <div class="section-badge">INTERACTIVE PROOF OF CAPABILITY</div>
+      <div class="section-badge eyebrow-mint">Interactive Proof of Capability</div>
       <h2 class="section-title">Drag to Compare: Raw DOM vs. Synthesized Output</h2>
       <p class="section-desc">Drag the divider to inspect the visual delta applied non-destructively by the AuraCSS mutator.</p>
 
@@ -108,14 +119,14 @@
           <div class="diff-layer diff-after" id="diff-after-layer">
             <div class="mock-browser-frame frame-after">
               <div class="mock-browser-bar">
-                <span class="mock-tag tag-accent">MUTATED: AuraCSS Glassmorphic</span>
+                <span class="mock-tag tag-accent">MUTATED: AuraCSS Cosmic Surface</span>
               </div>
               <div class="mock-browser-content">
                 <div class="synthesized-element-sample">
-                  <div class="synth-badge">● LIVE ENCRYPTED</div>
+                  <div class="synth-badge">&bull; LIVE ENCRYPTED</div>
                   <h4 class="synth-title">Order Processing Gateway</h4>
-                  <p class="synth-text">Synthesized OKLCH palette, backdrop blur, ambient cyan glow, and 60fps transitions.</p>
-                  <button class="synth-btn">Submit Payment ➔</button>
+                  <p class="synth-text">Synthesized Carbon surface, 8% hairline border, Lunar White type, and 9999px inverted CTA.</p>
+                  <button class="synth-btn">Submit Payment &rsaquo;</button>
                 </div>
               </div>
             </div>
@@ -125,10 +136,10 @@
           <div class="diff-divider" id="diff-divider-handle">
             <div class="divider-line"></div>
             <div class="divider-thumb">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
             </div>
@@ -140,34 +151,34 @@
         <div class="diff-code-panel">
           <div class="diff-code-header">
             <span>MUTATION DELTA (CSS Ledger Format)</span>
-            <span class="diff-stats">+14 declarations | 0 stylesheet collisions</span>
+            <span class="diff-stats">+6 declarations | 0 stylesheet collisions</span>
           </div>
           <pre class="diff-code-pre"><code><span class="diff-del">- background-color: #efefef;</span>
 <span class="diff-del">- border: 2px outset buttonface;</span>
-<span class="diff-add">+ background: rgba(15, 23, 42, 0.75);</span>
-<span class="diff-add">+ backdrop-filter: blur(16px);</span>
-<span class="diff-add">+ border: 1px solid rgba(56, 189, 248, 0.35);</span>
-<span class="diff-add">+ box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.5), 0 0 18px rgba(56, 189, 248, 0.15);</span>
-<span class="diff-add">+ transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);</span></code></pre>
+<span class="diff-add">+ background: #17191e;</span>
+<span class="diff-add">+ border: 1px solid rgba(229, 231, 235, 0.08);</span>
+<span class="diff-add">+ border-radius: 16px;</span>
+<span class="diff-add">+ color: #f2f6fa;</span>
+<span class="diff-add">+ transition: border-color 0.15s cubic-bezier(0.4, 0, 0.2, 1);</span></code></pre>
         </div>
       </div>
     </section>
 
     <!-- Interactive Live Sandbox -->
     <section class="playground-section" id="playground">
-      <div class="section-badge">HOST DOCUMENT SANDBOX</div>
+      <div class="section-badge eyebrow-violet">Host Document Sandbox</div>
       <h2 class="section-title">Live Testing Playground</h2>
       <p class="section-desc">Click "Activate In-Page Engine" or press <kbd>Alt+A</kbd> to inspect and style the components below:</p>
 
       <div class="playground-wrapper">
         <div class="playground-header">
-          <div class="terminal-dots">
+          <div class="terminal-dots" aria-hidden="true">
             <span class="t-dot"></span>
             <span class="t-dot"></span>
             <span class="t-dot"></span>
           </div>
           <div class="playground-title">test-harness://localhost/fixture-matrix</div>
-          <div class="live-pill" id="live-indicator">● Standby (Press Alt+A)</div>
+          <div class="live-pill" id="live-indicator">&bull; Standby (Press Alt+A)</div>
         </div>
 
         <div class="playground-canvas">
@@ -189,18 +200,18 @@
       </div>
     </section>
 
-    <!-- NEW SECTION 2: Live MCP Protocol Inspector -->
+    <!-- SECTION 2: Live MCP Protocol Inspector -->
     <section class="mcp-inspector-section" id="mcp">
-      <div class="section-badge">INTER-PROCESS COMMUNICATION</div>
+      <div class="section-badge eyebrow-blue">Inter-Process Communication</div>
       <h2 class="section-title">Live MCP Tool Wire Protocol</h2>
       <p class="section-desc">Inspect the JSON-RPC 2.0 payloads exchanged between the AI Agent and the AuraCSS Bridge:</p>
 
       <div class="terminal-inspector-container">
         <div class="terminal-panel">
-          <div class="terminal-tab-bar">
-            <button class="term-tab active" data-payload="inspect">auracss_inspect_element</button>
-            <button class="term-tab" data-payload="apply">auracss_apply_style</button>
-            <button class="term-tab" data-payload="commit">auracss_commit_to_source</button>
+          <div class="terminal-tab-bar" role="tablist" aria-label="MCP wire payload selector">
+            <button class="term-tab active" data-payload="inspect" role="tab" aria-selected="true">auracss_inspect_element</button>
+            <button class="term-tab" data-payload="apply" role="tab" aria-selected="false">auracss_apply_style</button>
+            <button class="term-tab" data-payload="commit" role="tab" aria-selected="false">auracss_commit_to_source</button>
           </div>
           <div class="terminal-body">
             <div class="term-direction">&gt; CLIENT REQUEST:</div>
@@ -214,7 +225,7 @@
 
     <!-- 4-Way Installation Matrix -->
     <section class="install-section" id="install">
-      <div class="section-badge">DISTRIBUTION CHANNELS</div>
+      <div class="section-badge eyebrow-mint">Distribution Channels</div>
       <h2 class="section-title">Deployment &amp; Installation Matrix</h2>
       <p class="section-desc">Select the integration architecture for your engineering workflow:</p>
 
@@ -257,7 +268,7 @@
             <div class="code-header">
               <span id="config-filename">mcp_config.json</span>
               <button class="copy-btn" id="copy-mcp-btn" aria-label="Copy config">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                 </svg>
@@ -284,16 +295,16 @@
 
           <div class="bookmarklet-zone">
             <p class="zone-instruction">Drag this executable element onto your browser's <strong>Bookmarks Bar</strong>:</p>
-            
+
             <div class="drag-button-container">
-              <a 
+              <a
                 id="bookmarklet-link"
-                class="bookmarklet-drag-btn" 
+                class="bookmarklet-drag-btn"
                 href="javascript:(function(){if(window.__AURACSS_INSTANCE__){window.__AURACSS_INSTANCE__.toggle();return;}const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/gh/chrey-on/AuraCSS@main/dist/auracss.bundle.js';document.head.appendChild(s);})();"
                 title="Drag to Bookmarks Bar"
               >
                 <span class="drag-handle-dots">⋮⋮</span>
-                <span>✦ AuraCSS Co-Pilot</span>
+                <span>AuraCSS Co-Pilot</span>
               </a>
             </div>
 
@@ -321,7 +332,7 @@
               <div class="code-box" style="margin-top: 8px;">
                 <pre><code>git clone https://github.com/chrey-on/AuraCSS.git
 cd AuraCSS
-npm install && npm run build</code></pre>
+npm install &amp;&amp; npm run build</code></pre>
               </div>
             </li>
             <li>
@@ -352,26 +363,62 @@ npm install && npm run build</code></pre>
       </div>
     </section>
 
-    <!-- NEW SECTION 3: Technical Architecture Diagrams (Replacing Emoji Cards) -->
+    <!-- SECTION 3: Technical Architecture Diagrams + Stats Bar -->
     <section class="features-section" id="architecture">
-      <div class="section-badge">CORE ARCHITECTURE</div>
+      <div class="section-badge eyebrow-violet">Core Architecture</div>
       <h2 class="section-title">Engineered Invariants</h2>
       <p class="section-desc">Six core systems engineered to eliminate layout thrashing, stylesheet collisions, and data loss:</p>
+
+      <!-- Astro Stats Bar -->
+      <div class="stats-panel" aria-label="Engine performance metrics">
+        <div class="stats-row">
+          <div class="stats-meta">
+            <span class="stats-label">FastDOM Frame Budget (60fps)</span>
+            <span class="stats-value">100%</span>
+          </div>
+          <div class="stats-track">
+            <div class="stats-bar-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stats-meta">
+            <span class="stats-label">Shadow DOM CSS Isolation</span>
+            <span class="stats-value">100%</span>
+          </div>
+          <div class="stats-track">
+            <div class="stats-bar-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stats-meta">
+            <span class="stats-label">Browser Native Footprint (0 External Deps)</span>
+            <span class="stats-value">98%</span>
+          </div>
+          <div class="stats-track">
+            <div class="stats-bar-fill" style="width: 98%;"></div>
+          </div>
+        </div>
+      </div>
 
       <div class="diagram-grid">
         <!-- Diagram 1: Shadow DOM Isolation -->
         <div class="diagram-card">
+          <div class="feature-icon-circle circle-mint" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </div>
           <div class="diagram-visual">
-            <svg viewBox="0 0 280 100" class="arch-svg">
-              <rect x="10" y="15" width="110" height="70" rx="6" fill="#111827" stroke="#374151" stroke-dasharray="3 3"/>
-              <text x="65" y="45" fill="#9ca3af" font-size="10" text-anchor="middle" font-family="monospace">Host DOM</text>
-              <text x="65" y="60" fill="#6b7280" font-size="8" text-anchor="middle" font-family="monospace">Global CSS</text>
-              
-              <path d="M 125 50 L 155 50" stroke="#6366f1" stroke-width="2" marker-end="url(#arrow)"/>
-              
-              <rect x="160" y="15" width="110" height="70" rx="6" fill="#1e1b4b" stroke="#6366f1"/>
-              <text x="215" y="45" fill="#a5b4fc" font-size="10" text-anchor="middle" font-family="monospace">#auracss-root</text>
-              <text x="215" y="60" fill="#38bdf8" font-size="8" text-anchor="middle" font-family="monospace">Open Shadow DOM</text>
+            <svg viewBox="0 0 280 100" class="arch-svg" aria-hidden="true">
+              <rect x="10" y="15" width="110" height="70" rx="6" fill="#0c0f19" stroke="#545864" stroke-dasharray="3 3"/>
+              <text x="65" y="45" fill="#bfc1c9" font-size="10" text-anchor="middle" font-family="monospace">Host DOM</text>
+              <text x="65" y="60" fill="#858b98" font-size="8" text-anchor="middle" font-family="monospace">Global CSS</text>
+
+              <path d="M 125 50 L 155 50" stroke="#acafff" stroke-width="1.5"/>
+
+              <rect x="160" y="15" width="110" height="70" rx="6" fill="#17191e" stroke="#acafff"/>
+              <text x="215" y="45" fill="#f2f6fa" font-size="10" text-anchor="middle" font-family="monospace">#auracss-root</text>
+              <text x="215" y="60" fill="#4bf3c8" font-size="8" text-anchor="middle" font-family="monospace">Open Shadow DOM</text>
             </svg>
           </div>
           <h3 class="diagram-heading">W3C Open Shadow DOM Shield</h3>
@@ -380,20 +427,25 @@ npm install && npm run build</code></pre>
 
         <!-- Diagram 2: FastDOM Scheduler -->
         <div class="diagram-card">
+          <div class="feature-icon-circle circle-blue" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+          </div>
           <div class="diagram-visual">
-            <svg viewBox="0 0 280 100" class="arch-svg">
-              <rect x="15" y="30" width="75" height="40" rx="4" fill="#064e3b" stroke="#10b981"/>
-              <text x="52" y="54" fill="#6ee7b7" font-size="9" text-anchor="middle" font-family="monospace">READ (rAF)</text>
-              
-              <path d="M 95 50 L 115 50" stroke="#10b981" stroke-width="1.5"/>
-              
-              <rect x="120" y="30" width="75" height="40" rx="4" fill="#1e1b4b" stroke="#6366f1"/>
-              <text x="157" y="54" fill="#c7d2fe" font-size="9" text-anchor="middle" font-family="monospace">WRITE (rAF)</text>
-              
-              <path d="M 200 50 L 220 50" stroke="#6366f1" stroke-width="1.5"/>
-              
-              <circle cx="245" cy="50" r="16" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
-              <text x="245" y="54" fill="#38bdf8" font-size="8" text-anchor="middle" font-family="monospace">60fps</text>
+            <svg viewBox="0 0 280 100" class="arch-svg" aria-hidden="true">
+              <rect x="15" y="30" width="75" height="40" rx="4" fill="#0c0f19" stroke="#4bf3c8"/>
+              <text x="52" y="54" fill="#4bf3c8" font-size="9" text-anchor="middle" font-family="monospace">READ (rAF)</text>
+
+              <path d="M 95 50 L 115 50" stroke="#4bf3c8" stroke-width="1.5"/>
+
+              <rect x="120" y="30" width="75" height="40" rx="4" fill="#17191e" stroke="#acafff"/>
+              <text x="157" y="54" fill="#acafff" font-size="9" text-anchor="middle" font-family="monospace">WRITE (rAF)</text>
+
+              <path d="M 200 50 L 220 50" stroke="#acafff" stroke-width="1.5"/>
+
+              <circle cx="245" cy="50" r="16" fill="#0c0f19" stroke="#54b9ff" stroke-width="1.5"/>
+              <text x="245" y="54" fill="#54b9ff" font-size="8" text-anchor="middle" font-family="monospace">60fps</text>
             </svg>
           </div>
           <h3 class="diagram-heading">FastDOM Geometry Batching</h3>
@@ -402,17 +454,23 @@ npm install && npm run build</code></pre>
 
         <!-- Diagram 3: Ambient Token Harvester -->
         <div class="diagram-card">
+          <div class="feature-icon-circle circle-amber" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <circle cx="12" cy="12" r="9"></circle>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </div>
           <div class="diagram-visual">
-            <svg viewBox="0 0 280 100" class="arch-svg">
-              <circle cx="50" cy="50" r="14" fill="#38bdf8" opacity="0.8"/>
-              <circle cx="75" cy="50" r="14" fill="#818cf8" opacity="0.8"/>
-              <circle cx="100" cy="50" r="14" fill="#c084fc" opacity="0.8"/>
-              
-              <path d="M 125 50 L 155 50" stroke="#4b5563" stroke-width="1.5"/>
-              
-              <rect x="165" y="25" width="100" height="50" rx="4" fill="#111827" stroke="#374151"/>
-              <text x="215" y="45" fill="#f3f4f6" font-size="8" text-anchor="middle" font-family="monospace">OKLCH Palette</text>
-              <text x="215" y="60" fill="#9ca3af" font-size="8" text-anchor="middle" font-family="monospace">Type &amp; Radii Scales</text>
+            <svg viewBox="0 0 280 100" class="arch-svg" aria-hidden="true">
+              <circle cx="50" cy="50" r="14" fill="#54b9ff" opacity="0.85"/>
+              <circle cx="75" cy="50" r="14" fill="#acafff" opacity="0.85"/>
+              <circle cx="100" cy="50" r="14" fill="#4bf3c8" opacity="0.85"/>
+
+              <path d="M 125 50 L 155 50" stroke="#545864" stroke-width="1.5"/>
+
+              <rect x="165" y="25" width="100" height="50" rx="4" fill="#0c0f19" stroke="#545864"/>
+              <text x="215" y="45" fill="#f2f6fa" font-size="8" text-anchor="middle" font-family="monospace">OKLCH Palette</text>
+              <text x="215" y="60" fill="#858b98" font-size="8" text-anchor="middle" font-family="monospace">Type &amp; Radii Scales</text>
             </svg>
           </div>
           <h3 class="diagram-heading">Ambient Token Extraction</h3>
@@ -421,14 +479,21 @@ npm install && npm run build</code></pre>
 
         <!-- Diagram 4: Smart Dodge & Anti-Occlusion -->
         <div class="diagram-card">
+          <div class="feature-icon-circle circle-mint" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+              <path d="M9 15l6-6"></path>
+              <path d="M10 9h5v5"></path>
+            </svg>
+          </div>
           <div class="diagram-visual">
-            <svg viewBox="0 0 280 100" class="arch-svg">
-              <rect x="20" y="20" width="240" height="60" rx="4" fill="#0f172a" stroke="#334155"/>
-              <rect x="40" y="45" width="50" height="25" rx="3" fill="#374151"/>
-              <text x="65" y="61" fill="#9ca3af" font-size="7" text-anchor="middle" font-family="monospace">Target</text>
-              
-              <rect x="170" y="30" width="70" height="20" rx="3" fill="#312e81" stroke="#6366f1"/>
-              <text x="205" y="43" fill="#c7d2fe" font-size="7" text-anchor="middle" font-family="monospace">HUD Dodge ↑</text>
+            <svg viewBox="0 0 280 100" class="arch-svg" aria-hidden="true">
+              <rect x="20" y="20" width="240" height="60" rx="4" fill="#0c0f19" stroke="#545864"/>
+              <rect x="40" y="45" width="50" height="25" rx="3" fill="#17191e" stroke="#545864"/>
+              <text x="65" y="61" fill="#858b98" font-size="7" text-anchor="middle" font-family="monospace">Target</text>
+
+              <rect x="170" y="30" width="70" height="20" rx="3" fill="#17191e" stroke="#acafff"/>
+              <text x="205" y="43" fill="#f2f6fa" font-size="7" text-anchor="middle" font-family="monospace">HUD Dodge &uarr;</text>
             </svg>
           </div>
           <h3 class="diagram-heading">Anti-Occlusion &amp; Smart Dodge</h3>
@@ -437,16 +502,22 @@ npm install && npm run build</code></pre>
 
         <!-- Diagram 5: GoF Command Stack -->
         <div class="diagram-card">
+          <div class="feature-icon-circle circle-blue" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <path d="M3 7v6h6"></path>
+              <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+            </svg>
+          </div>
           <div class="diagram-visual">
-            <svg viewBox="0 0 280 100" class="arch-svg">
-              <circle cx="50" cy="50" r="10" fill="#1f2937" stroke="#4b5563"/>
-              <line x1="60" y1="50" x2="100" y2="50" stroke="#4b5563" stroke-width="2"/>
-              <circle cx="110" cy="50" r="10" fill="#1f2937" stroke="#4b5563"/>
-              <line x1="120" y1="50" x2="160" y2="50" stroke="#4b5563" stroke-width="2"/>
-              <circle cx="170" cy="50" r="12" fill="#312e81" stroke="#6366f1" stroke-width="2"/>
-              <line x1="182" y1="50" x2="220" y2="50" stroke="#374151" stroke-width="2" stroke-dasharray="2 2"/>
-              <circle cx="230" cy="50" r="10" fill="#111827" stroke="#374151"/>
-              <text x="170" y="78" fill="#a5b4fc" font-size="8" text-anchor="middle" font-family="monospace">Undo Stack (Ctrl+Z)</text>
+            <svg viewBox="0 0 280 100" class="arch-svg" aria-hidden="true">
+              <circle cx="50" cy="50" r="10" fill="#17191e" stroke="#545864"/>
+              <line x1="60" y1="50" x2="100" y2="50" stroke="#545864" stroke-width="1.5"/>
+              <circle cx="110" cy="50" r="10" fill="#17191e" stroke="#545864"/>
+              <line x1="120" y1="50" x2="160" y2="50" stroke="#545864" stroke-width="1.5"/>
+              <circle cx="170" cy="50" r="12" fill="#0c0f19" stroke="#acafff" stroke-width="1.5"/>
+              <line x1="182" y1="50" x2="220" y2="50" stroke="#545864" stroke-width="1.5" stroke-dasharray="2 2"/>
+              <circle cx="230" cy="50" r="10" fill="#0c0f19" stroke="#545864"/>
+              <text x="170" y="78" fill="#acafff" font-size="8" text-anchor="middle" font-family="monospace">Undo Stack (Ctrl+Z)</text>
             </svg>
           </div>
           <h3 class="diagram-heading">GoF Reversible Command Stack</h3>
@@ -455,15 +526,21 @@ npm install && npm run build</code></pre>
 
         <!-- Diagram 6: Tailwind & CSS Ledger -->
         <div class="diagram-card">
+          <div class="feature-icon-circle circle-amber" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <polyline points="16 18 22 12 16 6"></polyline>
+              <polyline points="8 6 2 12 8 18"></polyline>
+            </svg>
+          </div>
           <div class="diagram-visual">
-            <svg viewBox="0 0 280 100" class="arch-svg">
-              <rect x="25" y="25" width="105" height="50" rx="4" fill="#0f172a" stroke="#334155"/>
-              <text x="77" y="54" fill="#38bdf8" font-size="8" text-anchor="middle" font-family="monospace">CSS Diff Output</text>
-              
-              <path d="M 135 50 L 155 50" stroke="#6366f1" stroke-width="1.5"/>
-              
-              <rect x="160" y="25" width="105" height="50" rx="4" fill="#0f172a" stroke="#38bdf8"/>
-              <text x="212" y="54" fill="#a5f3fc" font-size="8" text-anchor="middle" font-family="monospace">Tailwind Classes</text>
+            <svg viewBox="0 0 280 100" class="arch-svg" aria-hidden="true">
+              <rect x="25" y="25" width="105" height="50" rx="4" fill="#0c0f19" stroke="#545864"/>
+              <text x="77" y="54" fill="#54b9ff" font-size="8" text-anchor="middle" font-family="monospace">CSS Diff Output</text>
+
+              <path d="M 135 50 L 155 50" stroke="#acafff" stroke-width="1.5"/>
+
+              <rect x="160" y="25" width="105" height="50" rx="4" fill="#0c0f19" stroke="#4bf3c8"/>
+              <text x="212" y="54" fill="#4bf3c8" font-size="8" text-anchor="middle" font-family="monospace">Tailwind Classes</text>
             </svg>
           </div>
           <h3 class="diagram-heading">Tailwind &amp; CSS Source Ledger</h3>
@@ -477,8 +554,8 @@ npm install && npm run build</code></pre>
   <footer class="site-footer">
     <div class="footer-container">
       <div class="footer-left">
-        <span class="footer-brand">✦ AURACSS</span>
-        <span class="footer-copy">MIT License • Built with Modern Web Platform Standards.</span>
+        <span class="footer-brand">AURACSS</span>
+        <span class="footer-copy">MIT License &bull; Built with Modern Web Platform Standards.</span>
       </div>
       <div class="footer-links">
         <a href="https://github.com/chrey-on/AuraCSS" target="_blank" rel="noopener noreferrer">GitHub Source</a>
@@ -489,7 +566,7 @@ npm install && npm run build</code></pre>
   </footer>
 
   <!-- Toast Notification -->
-  <div id="toast" class="toast" role="status" aria-live="polite">✓ Copied to clipboard!</div>
+  <div id="toast" class="toast" role="status" aria-live="polite">&#10003; Copied to clipboard!</div>
 
   <!-- Client Script -->
   <script type="module" src="./main.js"></script>
